@@ -8,5 +8,8 @@
     "Pod::To::PDF::Lite" : "lib/Pod/To/PDF/Lite.rakumod",
     "Pod::To::PDF::Lite::Style" : "lib/Pod/To/PDF/Lite/Style.rakumod"
   },
-  "source-url"  : "git://github.com/pdf-raku/Pod-to-PDF-Lite-raku.git"
+  "source-url"  : "git://github.com/pdf-raku/Pod-to-PDF-Lite-raku.git",
+  "tags": [
+      "pdf", "pod"
+  ]
 }
