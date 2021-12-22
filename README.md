@@ -1,6 +1,6 @@
 # Pod::To::PDF::Lite (Raku)
 
-Render Pod as PDF.
+Render Pod as a minimal draft PDF file.
 
 ## Installation
 
@@ -13,7 +13,7 @@ $ zef install Pod::To::PDF::Lite
 
 From command line:
 
-    $ raku --doc=PDF::Lite lib/class.rakumod > class.pdf
+    $ raku --doc=PDF::Lite lib/class.rakumod | xargs xpdf
 
 From Raku:
 
@@ -30,3 +30,13 @@ foobar.raku
 my PDF::Lite $pdf = pod2pdf($=pod);
 $pdf.save-as: "class.pdf";
 ```
+## Restrictions
+Produces mimimalistic PDF files via [PDF::Lite](https://pdf-raku.github.io/PDF-Lite-raku):
+- PDF Core Fonts only
+- no Table of Contents or Index
+- no Links
+- no PDF Tagging
+
+## See Also
+- [PDF::Lite](https://pdf-raku.github.io/PDF-Lite-raku) - minimal PDF manipulation
+
