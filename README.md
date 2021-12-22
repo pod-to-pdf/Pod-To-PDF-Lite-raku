@@ -1,24 +1,50 @@
-# Pod::To::PDF::Lite (Raku)
+NAME
+====
 
-Render Pod as a minimal draft PDF file.
+Pod::To::PDF::Lite - Pod to PDF draft renderer
 
-## Installation
-
-Using zef:
-```
-$ zef install Pod::To::PDF::Lite
-```
-
-## Usage:
+SYNOPSIS
+========
 
 From command line:
 
-    $ raku --doc=PDF::Lite lib/class.rakumod | xargs xpdf
+    $ raku --doc=PDF lib/to/class.rakumod | xargs xpdf
 
 From Raku:
 
+```raku
+use Pod::To::PDF;
+
+=NAME
+foobar.pl
+
+=SYNOPSIS
+    foobar.pl <options> files ...
+
+pod2pdf($=pod).save-as: "foobar.pdf";
 ```
-use Pod::To::PDF::Lite;
+
+EXPORTS
+=======
+
+    class Pod::To::PDF;
+    sub pod2pdf; # See below
+
+DESCRIPTION
+===========
+
+Renders draft PDF documents via PDF::Lite.
+
+From command line:
+
+```shell
+$ raku --doc=PDF::Lite lib/to/class.rakumod | xargs xpdf
+```
+
+From Raku code, the `pod2pdf` function returns a [PDF::Lite](PDF::Lite) object which can be further manipulated, or saved to a PDF file.
+
+```raku
+use Pod::To::PDF;
 use PDF::Lite;
 
 =NAME
@@ -28,15 +54,28 @@ foobar.raku
     foobarraku <options> files ...
 
 my PDF::Lite $pdf = pod2pdf($=pod);
-$pdf.save-as: "class.pdf";
+$pdf.save-as: "class.pdf"
 ```
-## Restrictions
-Produces mimimalistic PDF files via [PDF::Lite](https://pdf-raku.github.io/PDF-Lite-raku):
-- PDF Core Fonts only
-- no Table of Contents or Index
-- no Links
-- no PDF Tagging
 
-## See Also
-- [PDF::Lite](https://pdf-raku.github.io/PDF-Lite-raku) - minimal PDF manipulation
+RESTRICTIONS
+============
+
+
+
+[PDF::Lite](PDF::Lite) minimalism, including:
+
+  * PDF Core Fonts only
+
+  * no Table of Contents or Index
+
+  * no Links
+
+  * no Marked Content/Accessibility
+
+SEE
+===
+
+ALSO
+
+  * [PDF::Lite](PDF::Lite) - minimal PDF manipulation
 
