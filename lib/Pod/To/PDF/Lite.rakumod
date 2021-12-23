@@ -1,4 +1,4 @@
-class Pod::To::PDF::Lite:ver<0.0.1> {
+class Pod::To::PDF::Lite:ver<0.0.2> {
     use PDF::Lite;
     use PDF::Content;
     use PDF::Content::Color :&color;
@@ -36,6 +36,7 @@ class Pod::To::PDF::Lite:ver<0.0.1> {
     method render($class: $pod, |c) {
         my $renderer = $class.new(|c, :$pod);
         my PDF::Lite $pdf = $renderer.pdf;
+        # save to a temporary file, since PDF is a binary format
         my ($file-name, ) = tempfile("pod2pdf-lite-****.pdf", :!unlink);
         $pdf.save-as: $file-name;
         $file-name;
@@ -49,6 +50,7 @@ class Pod::To::PDF::Lite:ver<0.0.1> {
     my constant vpad = 2;
     my constant hpad = 10;
 
+    # a simple algorithm for sizing table column widths
     sub fit-widths($width is copy, @widths) {
         my $cell-width = $width / +@widths;
         my @idx;
@@ -72,7 +74,7 @@ class Pod::To::PDF::Lite:ver<0.0.1> {
             }
             else {
                 $_ = $cell-width
-                      for @widths;
+                    for @widths;
             }
         }
     }
@@ -120,11 +122,13 @@ class Pod::To::PDF::Lite:ver<0.0.1> {
         }
     }
 
+    # generate content of a single table cell
     method !table-cell($pod) {
         my $text = pod2text($pod);
         self!text-box: $text, :width(0), :height(0), :indent(0);
     }
 
+    # prepare a table as a grid of text boxes. compute column widths
     method !build-table($pod, @table) {
         my $x0 = $!margin + self!indent;
         my \total-width = self!gfx.canvas.width - $x0 - $!margin;

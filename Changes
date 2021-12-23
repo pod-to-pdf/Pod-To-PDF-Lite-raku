@@ -2,5 +2,8 @@ Revision history for Pod-To-PDF-Lite
 
 {{$NEXT}}
 
+0.0.2  2021-12-24T05:46:28+13:00
+    - Fix documentation
+
 0.0.1  2021-12-23T08:11:18+13:00
     - Initial version
