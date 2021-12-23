@@ -577,11 +577,11 @@ Pod::To::PDF::Lite - Pod to PDF draft renderer
 =SYNOPSIS
 From command line:
 
-    $ raku --doc=PDF lib/to/class.rakumod | xargs xpdf
+    $ raku --doc=PDF::Lite lib/to/class.rakumod | xargs xpdf
 
 From Raku:
     =begin code :lang<raku>
-    use Pod::To::PDF;
+    use Pod::To::PDF::Lite;
 
     =NAME
     foobar.pl
@@ -593,11 +593,11 @@ From Raku:
     =end code
 
 =EXPORTS
-    class Pod::To::PDF;
+    class Pod::To::PDF::Lite;
     sub pod2pdf; # See below
 
 =DESCRIPTION
-Renders draft PDF documents via PDF::Lite.
+Renders Pod to PDF draft documents via PDF::Lite.
 
 From command line:
     =begin code :lang<shell>
@@ -607,7 +607,7 @@ From Raku code, the C<pod2pdf> function returns a L<PDF::Lite> object which can
 be further manipulated, or saved to a PDF file.
 
     =begin code :lang<raku>
-    use Pod::To::PDF;
+    use Pod::To::PDF::Lite;
     use PDF::Lite;
  
     =NAME
@@ -627,10 +627,7 @@ L<PDF::Lite> minimalism, including:
 =item PDF Core Fonts only
 =item no Table of Contents or Index
 =item no Links
+=item no Synax Highlighting
 =item no Marked Content/Accessibility
-
-=SEE ALSO
-
-=item L<PDF::Lite> - minimal PDF manipulation
 
 =end pod

@@ -8,12 +8,12 @@ SYNOPSIS
 
 From command line:
 
-    $ raku --doc=PDF lib/to/class.rakumod | xargs xpdf
+    $ raku --doc=PDF::Lite lib/to/class.rakumod | xargs xpdf
 
 From Raku:
 
 ```raku
-use Pod::To::PDF;
+use Pod::To::PDF::Lite;
 
 =NAME
 foobar.pl
@@ -27,13 +27,13 @@ pod2pdf($=pod).save-as: "foobar.pdf";
 EXPORTS
 =======
 
-    class Pod::To::PDF;
+    class Pod::To::PDF::Lite;
     sub pod2pdf; # See below
 
 DESCRIPTION
 ===========
 
-Renders draft PDF documents via PDF::Lite.
+Renders Pod to PDF draft documents via PDF::Lite.
 
 From command line:
 
@@ -44,7 +44,7 @@ $ raku --doc=PDF::Lite lib/to/class.rakumod | xargs xpdf
 From Raku code, the `pod2pdf` function returns a [PDF::Lite](PDF::Lite) object which can be further manipulated, or saved to a PDF file.
 
 ```raku
-use Pod::To::PDF;
+use Pod::To::PDF::Lite;
 use PDF::Lite;
 
 =NAME
@@ -70,12 +70,7 @@ RESTRICTIONS
 
   * no Links
 
+  * no Synax Highlighting
+
   * no Marked Content/Accessibility
-
-SEE
-===
-
-ALSO
-
-  * [PDF::Lite](PDF::Lite) - minimal PDF manipulation
 
