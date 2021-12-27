@@ -14,7 +14,8 @@ class Pod::To::PDF::Lite:ver<0.0.2> {
     has PDF::Content $!gfx;
     has UInt $!indent = 0;
     has Pod::To::PDF::Lite::Style $.style handles<font font-size leading line-height bold italic mono underline lines-before link> .= new;
-    has ($!tx, $!ty); # current text-flow x, y position
+    has $!tx = 0; # text-flow x
+    has $!ty = 0; # text-flow y
     has $.margin = 20;
     has UInt $!pad = 0;
 
@@ -43,6 +44,7 @@ class Pod::To::PDF::Lite:ver<0.0.2> {
     }
 
     method title is rw { $!pdf.Info.Title; }
+
     our sub pod2pdf($pod, :$class = $?CLASS, |c) is export {
         $class.new(|c, :$pod).pdf;
     }
@@ -113,7 +115,9 @@ class Pod::To::PDF::Lite:ver<0.0.2> {
                 $tab += $width + hpad;
             }
             if @overflow {
-                self!table-row(@overflow, @widths, :$header);
+                self!style: :lines-before(3), {
+                    self!table-row(@overflow, @widths, :$header);
+                }
             }
             else {
                 $!ty -= $row-height + vpad;
@@ -153,7 +157,7 @@ class Pod::To::PDF::Lite:ver<0.0.2> {
     multi method pod2pdf(Pod::Block::Table $pod) {
         my @widths = self!build-table: $pod, my @table;
 
-        $.pad: {
+        self!style: :lines-before(3), :pad, {
             if $pod.caption -> $caption {
                 temp $.italic = True;
                 $.say: $caption;
@@ -344,19 +348,17 @@ class Pod::To::PDF::Lite:ver<0.0.2> {
         $name //= $w.?name // '';
         $decl //= $type;
 
-        $.pad: {
-            self!style: :lines-before(3), {
-                self!heading($type.tclc ~ ' ' ~ $name, :$level);
+        self!style: :lines-before(3), :pad, {
+            self!heading($type.tclc ~ ' ' ~ $name, :$level);
 
-                if $code {
-                    $.pad(1);
-                    self!code($decl ~ ' ' ~ $code);
-                }
+            if $code {
+                $.pad(1);
+                self!code($decl ~ ' ' ~ $code);
+            }
 
-                if $pod.contents {
-                    $.pad;
-                    $.pod2pdf($pod.contents);
-                }
+            if $pod.contents {
+                $.pad;
+                $.pod2pdf($pod.contents);
             }
         }
     }
@@ -419,7 +421,7 @@ class Pod::To::PDF::Lite:ver<0.0.2> {
         $.say for ^$!pad;
         $!pad = 0;
     }
-    method print(Str $text, Bool :$nl, |c) {
+    method print(Str $text, Bool :$nl, :$reflow = True, |c) {
         self!pad-here;
         my PDF::Content::Text::Box $tb = self!text-box: $text, |c;
         my $w = $tb.content-width;
@@ -442,41 +444,41 @@ class Pod::To::PDF::Lite:ver<0.0.2> {
 
         $gfx.Restore if $.link;
 
-        if $tb.overflow {
-            $.say() unless $nl;
-            @.print: $tb.overflow.join;
+        # calculate text bounding box and advance x, y
+        my $lines = +$tb.lines;
+        my $x0 = $pos.value[0];
+        if $nl {
+            # advance to next line
+            $!tx = 0;
         }
         else {
-            # calculate text bounding box and advance x, y
-            my $lines = +$tb.lines;
-            my $x0 = $pos.value[0];
-            if $nl {
-                # advance to next line
-                $!tx = 0;
-            }
-            else {
-                $!tx = 0 if $tb.lines > 1;
-                $x0 += $!tx;
-                # continue this line
+            $!tx = 0 if $tb.lines > 1;
+            $x0 += $!tx;
+            # continue this line
                 with $tb.lines.pop {
                     $w = .content-width - .indent;
                     $!tx += $w + $tb.space-width;
                 }
-            }
-            $!ty -= $tb.content-height;
-            ($x0, $!ty, $w, $h);
         }
+        $!ty -= $tb.content-height;
+        my Str $overflow = $tb.overflow.join;
+        if $overflow && $reflow {
+            $.say() unless $nl;
+            @.print: $overflow, :$nl, |c;
+            $overflow = Nil;
+        }
+        ($x0, $!ty, $w, $h, $overflow);
     }
 
     method !text-position {
         :position[$!margin + self!indent, $!ty]
     }
 
-    method !style(&codez, Bool :$indent, |c) {
+    method !style(&codez, Bool :$indent, Bool :$pad, |c) {
         temp $!style .= clone: |c;
         temp $!indent;
         $!indent += 1 if $indent;
-        &codez();
+        $pad ?? $.pad(&codez) !! &codez();
     }
 
     method !heading(Str:D $Title, Level :$level = 2, :$underline = $level == 1) {
@@ -502,23 +504,26 @@ class Pod::To::PDF::Lite:ver<0.0.2> {
     }
 
     method !code(Str $raw is copy) {
+        $raw .= chomp;
         self!style: :mono, :indent, {
-            $raw .= chomp;
-            $.lines-before = min(+$raw.lines, 3);
-            my constant \pad = 5;
-            $.font-size *= .8;
-            my (\x, \y, \w, \h) = @.say($raw, :verbatim);
+            while $raw {
+                $.lines-before = min(+$raw.lines, 3);
+                my constant \pad = 5;
+                $.font-size *= .8;
+                my (\x, \y, \w, \h, \overflow) = @.print: $raw, :verbatim, :!reflow;
+                $raw = overflow;
 
-            my $x0 =  self!indent + $!margin;
-            my $width = $!gfx.canvas.width - $!margin - $x0;
-            $!gfx.graphics: {
-                constant \pad = 2;
-                .FillColor = color 0;
-                .StrokeColor = color 0;
-                .FillAlpha = 0.1;
-                .StrokeAlpha = 0.25;
-                .Rectangle: $x0 - pad, y - pad, $width, h + 2*pad + $.line-height;
-                .paint: :fill, :stroke;
+                my $x0 =  self!indent + $!margin;
+                my $width = $!gfx.canvas.width - $!margin - $x0;
+                $!gfx.graphics: {
+                    constant \pad = 2;
+                    .FillColor = color 0;
+                    .StrokeColor = color 0;
+                    .FillAlpha = 0.1;
+                    .StrokeAlpha = 0.25;
+                    .Rectangle: $x0 - pad, y - pad, $width, h + 2*pad;
+                    .paint: :fill, :stroke;
+                }
             }
         }
     }

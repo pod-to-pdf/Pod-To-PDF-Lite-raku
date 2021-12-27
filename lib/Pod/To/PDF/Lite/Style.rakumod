@@ -24,9 +24,8 @@ constant %CoreFont = %(
 );
 my subset FontKey of Str where %CoreFont{$_}:exists;
 has %.fonts;
-has $!font-key;
 method !font-key {
-    $!font-key //= join(
+    join(
         '-', 
         ($!bold ?? 'B' !! 'n'),
         ($!italic ?? 'I' !! 'n'),
