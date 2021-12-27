@@ -1,6 +1,8 @@
 Revision history for Pod-To-PDF-Lite
 
 {{$NEXT}}
+
+0.0.3  2021-12-28T10:10:23+13:00
     - Fixed issues with font styling and code pagination/reflow
 
 0.0.2  2021-12-24T05:46:28+13:00
