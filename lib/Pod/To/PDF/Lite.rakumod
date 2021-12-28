@@ -241,7 +241,10 @@ class Pod::To::PDF::Lite:ver<0.0.3> {
                 temp $.bold = True;
                 $.pod2pdf($pod.contents);
             }
-            when 'C'|'T' {
+            when 'C' {
+                self!code: pod2text($pod), :inline;
+            }
+            when 'T' {
                 temp $.mono = True;
                 $.pod2pdf($pod.contents);
             }
@@ -503,25 +506,25 @@ class Pod::To::PDF::Lite:ver<0.0.3> {
         }
     }
 
-    method !code(Str $raw is copy) {
+    method !code(Str $raw is copy, :$inline) {
         $raw .= chomp;
-        self!style: :mono, :indent, {
+        self!style: :mono, :indent(!$inline), {
             while $raw {
-                $.lines-before = min(+$raw.lines, 3);
-                my constant \pad = 5;
+                $.lines-before = min(+$raw.lines, 3)
+                    unless $inline;
                 $.font-size *= .8;
                 my (\x, \y, \w, \h, \overflow) = @.print: $raw, :verbatim, :!reflow;
                 $raw = overflow;
 
-                my $x0 =  self!indent + $!margin;
-                my $width = $!gfx.canvas.width - $!margin - $x0;
+                my $pad = $inline ?? 1 !! 4;
+                my $x0 = $inline ?? x !! self!indent + $!margin;
+                my $width = $inline ?? w !! $!gfx.canvas.width - $!margin - $x0;
                 $!gfx.graphics: {
-                    constant \pad = 2;
                     .FillColor = color 0;
                     .StrokeColor = color 0;
                     .FillAlpha = 0.1;
                     .StrokeAlpha = 0.25;
-                    .Rectangle: $x0 - pad, y - pad, $width, h + 2*pad;
+                    .Rectangle: $x0 - $pad, y - $pad, $width + 2 * $pad, h + 2 * $pad;
                     .paint: :fill, :stroke;
                 }
             }
@@ -580,10 +583,10 @@ class Pod::To::PDF::Lite:ver<0.0.3> {
 }
 
 =begin pod
-=NAME
+=TITLE
 Pod::To::PDF::Lite - Pod to PDF draft renderer
 
-=SYNOPSIS
+=head2 Synopsis
 From command line:
 
     $ raku --doc=PDF::Lite lib/to/class.rakumod | xargs xpdf
@@ -601,11 +604,11 @@ From Raku:
     pod2pdf($=pod).save-as: "foobar.pdf";
     =end code
 
-=EXPORTS
+=head2 Exports
     class Pod::To::PDF::Lite;
     sub pod2pdf; # See below
 
-=DESCRIPTION
+=head2 Description
 Renders Pod to PDF draft documents via PDF::Lite.
 
 From command line:
@@ -629,7 +632,7 @@ be further manipulated, or saved to a PDF file.
     $pdf.save-as: "class.pdf"
     =end code
 
-=RESTRICTIONS
+=head2 Restrictions
 
 L<PDF::Lite> minimalism, including:
 
@@ -638,5 +641,9 @@ L<PDF::Lite> minimalism, including:
 =item no Links
 =item no Synax Highlighting
 =item no Marked Content/Accessibility
+
+=head2 See Also
+
+[Pod::To::Cairo::PDF](https://github.com/dwarring/Pod-To-Cairo-raku) fully featured PDF renderer (under construction)
 
 =end pod
