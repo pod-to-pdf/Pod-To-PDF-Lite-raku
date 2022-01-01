@@ -1,7 +1,8 @@
 Revision history for Pod-To-PDF-Lite
 
 {{$NEXT}}
-    - Better formatting of inline code: C<$foo = 42;>.
+    - Reworked formatting of inline code: C<$foo = 42;>.
+    - Avoid double rendering in Rakudo #2588
 
 0.0.3  2021-12-28T10:10:23+13:00
     - Fixed issues with font styling and code pagination/reflow

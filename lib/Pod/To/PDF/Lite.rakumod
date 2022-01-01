@@ -35,12 +35,16 @@ class Pod::To::PDF::Lite:ver<0.0.3> {
     }
 
     method render($class: $pod, |c) {
-        my $renderer = $class.new(|c, :$pod);
-        my PDF::Lite $pdf = $renderer.pdf;
-        # save to a temporary file, since PDF is a binary format
-        my ($file-name, ) = tempfile("pod2pdf-lite-****.pdf", :!unlink);
-        $pdf.save-as: $file-name;
-        $file-name;
+        state %cache{Any};
+        %cache{$pod} //= do {
+            # render method may be called more than once: Rakudo #2588
+            my $renderer = $class.new(|c, :$pod);
+            my PDF::Lite $pdf = $renderer.pdf;
+            # save to a temporary file, since PDF is a binary format
+            my (Str $file-name, IO::Handle $fh) = tempfile("pod2pdf-lite-****.pdf", :!unlink);
+            $pdf.save-as: $fh;
+            $file-name;
+        }
     }
 
     method title is rw { $!pdf.Info.Title; }
@@ -102,7 +106,7 @@ class Pod::To::PDF::Lite:ver<0.0.3> {
                     if $header {
                         # draw underline
                         my $y = $!ty + $tb.underline-position - $head-space;
-                        self!line: $tab, $y, $tab + $width;
+                        self!draw-line: $tab, $y, $tab + $width;
                     }
                     given $tb.content-height {
                         $row-height = $_ if $_ > $row-height;
@@ -431,7 +435,6 @@ class Pod::To::PDF::Lite:ver<0.0.3> {
         my $h = $tb.content-height;
         my Pair $pos = self!text-position();
         my $gfx = self!gfx;
-
         if $.link {
             use PDF::Content::Color :ColorName;
             $gfx.Save;
@@ -515,23 +518,25 @@ class Pod::To::PDF::Lite:ver<0.0.3> {
                 $.font-size *= .8;
                 my (\x, \y, \w, \h, \overflow) = @.print: $raw, :verbatim, :!reflow;
                 $raw = overflow;
-
-                my $pad = $inline ?? 1 !! 4;
-                my $x0 = $inline ?? x !! self!indent + $!margin;
-                my $width = $inline ?? w !! $!gfx.canvas.width - $!margin - $x0;
-                $!gfx.graphics: {
-                    .FillColor = color 0;
-                    .StrokeColor = color 0;
-                    .FillAlpha = 0.1;
-                    .StrokeAlpha = 0.25;
-                    .Rectangle: $x0 - $pad, y - $pad, $width + 2 * $pad, h + 2 * $pad;
-                    .paint: :fill, :stroke;
+                unless $inline {
+                    # draw code-block background
+                    my constant pad = 5;
+                    my $x0 = self!indent + $!margin;
+                    my $width = $!gfx.canvas.width - $!margin - $x0;
+                    $!gfx.graphics: {
+                        .FillColor = color 0;
+                        .StrokeColor = color 0;
+                        .FillAlpha = 0.1;
+                        .StrokeAlpha = 0.25;
+                        .Rectangle: $x0 - pad, y - pad, $width + pad*2, h + pad*2;
+                        .paint: :fill, :stroke;
+                    }
                 }
             }
         }
     }
 
-    method !line($x0, $y0, $x1, $y1 = $y0, :$linewidth = 1) {
+    method !draw-line($x0, $y0, $x1, $y1 = $y0, :$linewidth = 1) {
         given $!gfx {
             .Save;
             .SetLineWidth: $linewidth;
@@ -548,7 +553,7 @@ class Pod::To::PDF::Lite:ver<0.0.3> {
         for $tb.lines {
             my $x0 = $tab + .indent;
             my $x1 = $tab + .content-width;
-            self!line($x0, $y, $x1, :$linewidth);
+            self!draw-line($x0, $y, $x1, :$linewidth);
             $y -= .height * $tb.leading;
         }
     }
@@ -578,8 +583,8 @@ class Pod::To::PDF::Lite:ver<0.0.3> {
     }
 
     multi sub node2text(Pod::Block $_) { node2text(.contents) }
-    multi sub node2text(@pod) { @pod.map(&node2text).join: ' ' }
-    multi sub node2text(Str() $_) { .trim }
+    multi sub node2text(@pod) { @pod.map(&node2text).join }
+    multi sub node2text(Str() $_) { $_ }
 }
 
 =begin pod
