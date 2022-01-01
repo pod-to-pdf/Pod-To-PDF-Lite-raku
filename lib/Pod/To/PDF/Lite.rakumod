@@ -1,4 +1,4 @@
-class Pod::To::PDF::Lite:ver<0.0.3> {
+class Pod::To::PDF::Lite:ver<0.0.4> {
     use PDF::Lite;
     use PDF::Content;
     use PDF::Content::Color :&color;
@@ -591,7 +591,10 @@ class Pod::To::PDF::Lite:ver<0.0.3> {
 =TITLE
 Pod::To::PDF::Lite - Pod to PDF draft renderer
 
-=head2 Synopsis
+=head2 Description
+Renders Pod to PDF draft documents via PDF::Lite.
+
+=head2 Usage
 From command line:
 
     $ raku --doc=PDF::Lite lib/to/class.rakumod | xargs xpdf
@@ -612,9 +615,6 @@ From Raku:
 =head2 Exports
     class Pod::To::PDF::Lite;
     sub pod2pdf; # See below
-
-=head2 Description
-Renders Pod to PDF draft documents via PDF::Lite.
 
 From command line:
     =begin code :lang<shell>

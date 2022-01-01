@@ -3,8 +3,11 @@ TITLE
 
 Pod::To::PDF::Lite - Pod to PDF draft renderer
 
-Synopsis From command line:
----------------------------
+Description Renders Pod to PDF draft documents via PDF::Lite.
+-------------------------------------------------------------
+
+Usage From command line:
+------------------------
 
     $ raku --doc=PDF::Lite lib/to/class.rakumod | xargs xpdf
 
@@ -24,9 +27,6 @@ pod2pdf($=pod).save-as: "foobar.pdf";
 
 Exports class Pod::To::PDF::Lite; sub pod2pdf; # See below
 ----------------------------------------------------------
-
-Description Renders Pod to PDF draft documents via PDF::Lite.
--------------------------------------------------------------
 
 From command line:
 

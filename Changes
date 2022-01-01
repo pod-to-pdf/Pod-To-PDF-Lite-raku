@@ -1,6 +1,8 @@
 Revision history for Pod-To-PDF-Lite
 
 {{$NEXT}}
+
+0.0.4  2022-01-02T05:45:10+13:00
     - Reworked formatting of inline code: C<$foo = 42;>.
     - Avoid double rendering in Rakudo #2588
 
