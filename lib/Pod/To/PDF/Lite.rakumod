@@ -8,16 +8,24 @@ class Pod::To::PDF::Lite:ver<0.0.4> {
     use File::Temp;
 
     subset Level of Int:D where 1..6;
+    my constant Gutter = 3;
 
     has PDF::Lite $.pdf is built .= new;
     has PDF::Lite::Page $!page;
-    has PDF::Content $!gfx;
+    has PDF::Content $.gfx;
     has UInt $!indent = 0;
     has Pod::To::PDF::Lite::Style $.style handles<font font-size leading line-height bold italic mono underline lines-before link> .= new;
     has $!tx = 0; # text-flow x
     has $!ty = 0; # text-flow y
     has $.margin = 20;
     has UInt $!pad = 0;
+    has @!foot-notes;
+    has $!gutter = Gutter;
+
+    method pdf {
+        self!finish-page;
+        $!pdf;
+    }
 
     method read($pod) {
         self.pod2pdf($pod);
@@ -28,7 +36,7 @@ class Pod::To::PDF::Lite:ver<0.0.4> {
         given $!pdf.Info //= {} {
             .CreationDate //= DateTime.now;
             .Producer //= "{self.^name}-{self.^ver}";
-            .Creator //= "PDF::Lite-{PDF::Lite.^ver}; PDF::Content-{PDF::Content.^ver}; PDF-{PDF.^ver}";
+            .Creator //= "Raku-{$*RAKU.version}, PDF::Lite-{PDF::Lite.^ver}; PDF::Content-{PDF::Content.^ver}; PDF-{PDF.^ver}";
         }
         self.title //= $_ with $title;
         self.read($_) with $pod;
@@ -260,6 +268,13 @@ class Pod::To::PDF::Lite:ver<0.0.4> {
                 temp $.italic = True;
                 temp $.mono = True;
                 $.pod2pdf($pod.contents);
+            }
+            when 'N' {
+                my $ind = '[' ~ @!foot-notes+1 ~ ']';
+                self!style: :link, {  $.pod2pdf($ind); }
+                my @contents = $ind, $pod.contents.Slip;
+                @!foot-notes.push: @contents;
+                $!gutter += self!text-box(pod2text(@contents)).lines;
             }
             when 'U' {
                 temp $.underline = True;
@@ -559,8 +574,8 @@ class Pod::To::PDF::Lite:ver<0.0.4> {
     }
 
     method !gfx {
-        my $y = $!ty - $.lines-before * $.line-height;
-        if !$!page.defined || $y <= 2 * $!margin {
+        my $y = $!ty - ($.lines-before + $!gutter) * $.line-height;
+        if !$!page.defined || $y <= $!margin {
             self!new-page;
         }
         elsif $!tx > 0 && $!tx > $!gfx.canvas.width - self!indent - $!margin {
@@ -569,7 +584,25 @@ class Pod::To::PDF::Lite:ver<0.0.4> {
         $!gfx;
     }
 
+    method !finish-page {
+        if @!foot-notes {
+            temp $!style .= new; # avoid current styling
+            $!tx = 0;
+            $!ty = $!margin + ($!gutter-2) * $.line-height;
+            $!gutter = 0;
+            self!draw-line($!margin, $!ty, $!gfx.canvas.width - 2*$!margin, $!ty);
+            while @!foot-notes {
+                $.pad(1);
+                my $foot-note = @!foot-notes.shift;
+                self!style: :link, { self.print($foot-note.shift) }; # [n]
+                $.pod2pdf($foot-note);
+            }
+        }
+    }
+
     method !new-page {
+        self!finish-page();
+        $!gutter = Gutter;
         $!page = $!pdf.add-page;
         $!gfx = $!page.gfx;
         $!tx = 0;
@@ -589,12 +622,15 @@ class Pod::To::PDF::Lite:ver<0.0.4> {
 
 =begin pod
 =TITLE
+
 Pod::To::PDF::Lite - Pod to PDF draft renderer
 
 =head2 Description
+
 Renders Pod to PDF draft documents via PDF::Lite.
 
 =head2 Usage
+
 From command line:
 
     $ raku --doc=PDF::Lite lib/to/class.rakumod | xargs xpdf

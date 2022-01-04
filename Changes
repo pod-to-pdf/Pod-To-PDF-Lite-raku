@@ -1,6 +1,8 @@
 Revision history for Pod-To-PDF-Lite
 
 {{$NEXT}}
+    - Handle footnotes N<...>. These are written to a reserved gutter
+      at the bottom of each page.
 
 0.0.4  2022-01-02T05:45:10+13:00
     - Reworked formatting of inline code: C<$foo = 42;>.
