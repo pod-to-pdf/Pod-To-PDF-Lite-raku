@@ -1,6 +1,8 @@
 Revision history for Pod-To-PDF-Lite
 
 {{$NEXT}}
+
+0.0.5  2022-01-05T09:29:15+13:00
     - Handle footnotes N<...>. These are written to a reserved gutter
       at the bottom of each page.
 

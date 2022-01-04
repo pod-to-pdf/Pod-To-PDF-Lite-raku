@@ -1,4 +1,4 @@
-class Pod::To::PDF::Lite:ver<0.0.4> {
+class Pod::To::PDF::Lite:ver<0.0.5> {
     use PDF::Lite;
     use PDF::Content;
     use PDF::Content::Color :&color;
@@ -12,7 +12,7 @@ class Pod::To::PDF::Lite:ver<0.0.4> {
 
     has PDF::Lite $.pdf is built .= new;
     has PDF::Lite::Page $!page;
-    has PDF::Content $.gfx;
+    has PDF::Content $!gfx;
     has UInt $!indent = 0;
     has Pod::To::PDF::Lite::Style $.style handles<font font-size leading line-height bold italic mono underline lines-before link> .= new;
     has $!tx = 0; # text-flow x
@@ -586,7 +586,7 @@ class Pod::To::PDF::Lite:ver<0.0.4> {
 
     method !finish-page {
         if @!foot-notes {
-            temp $!style .= new; # avoid current styling
+            temp $!style .= new; # avoid current styling, which may span pages
             $!tx = 0;
             $!ty = $!margin + ($!gutter-2) * $.line-height;
             $!gutter = 0;
@@ -682,9 +682,5 @@ L<PDF::Lite> minimalism, including:
 =item no Links
 =item no Synax Highlighting
 =item no Marked Content/Accessibility
-
-=head2 See Also
-
-[Pod::To::Cairo::PDF](https://github.com/dwarring/Pod-To-Cairo-raku) fully featured PDF renderer (under construction)
 
 =end pod
