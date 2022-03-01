@@ -225,7 +225,7 @@ multi method pod2pdf(Pod::Block::Named $pod) {
 
 multi method pod2pdf(Pod::Block::Code $pod) {
     $.pad: {
-        self!code: pod2text-code($pod.contents);
+        self!code: pod2text-code($pod);
     }
 }
 
@@ -634,11 +634,10 @@ method !new-page {
 method !indent { $!margin  +  10 * $!indent; }
 
 # we're currently throwing code formatting away
-multi sub pod2text-code(List $pod) {
-    $pod.map(&pod2text-code).join;
+multi sub pod2text-code(Pod::Block $pod) {
+    $pod.contents.map(&pod2text-code).join;
 }
 multi sub pod2text-code(Str $pod) { $pod }
-multi sub pod2text-code($pod) { pod2text($pod) }
 
 sub pod2text-inline($pod) {
     pod2text($pod).subst(/\s+/, ' ', :g);
