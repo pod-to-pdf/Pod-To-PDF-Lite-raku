@@ -19,16 +19,16 @@ class Pod::To::PDF::Lite:ver<0.0.5> {
     has $!ty = 0; # text-flow y
     has $.margin = 20;
     has UInt $!pad = 0;
-    has @!foot-notes;
+    has @!footnotes;
     has $!gutter = Gutter;
 
     method pdf {
-        self!finish-page;
         $!pdf;
     }
 
     method read($pod) {
         self.pod2pdf($pod);
+        self!finish-page;
     }
 
     submethod TWEAK(Str :$title, Str :$lang = 'en', :$pod) {
@@ -127,6 +127,7 @@ class Pod::To::PDF::Lite:ver<0.0.5> {
                 $tab += $width + hpad;
             }
             if @overflow {
+                # continue table
                 self!style: :lines-before(3), {
                     self!table-row(@overflow, @widths, :$header);
                 }
@@ -270,10 +271,10 @@ class Pod::To::PDF::Lite:ver<0.0.5> {
                 $.pod2pdf($pod.contents);
             }
             when 'N' {
-                my $ind = '[' ~ @!foot-notes+1 ~ ']';
+                my $ind = '[' ~ @!footnotes+1 ~ ']';
                 self!style: :link, {  $.pod2pdf($ind); }
                 my @contents = $ind, $pod.contents.Slip;
-                @!foot-notes.push: @contents;
+                @!footnotes.push: @contents;
                 $!gutter += self!text-box(pod2text(@contents)).lines;
             }
             when 'U' {
@@ -386,7 +387,7 @@ class Pod::To::PDF::Lite:ver<0.0.5> {
     }
 
     multi method pod2pdf(Pod::Block::Comment) {
-        # do nothing
+        # ignore comments
     }
 
     sub signature2text($params, Mu $returns?) {
@@ -585,17 +586,17 @@ class Pod::To::PDF::Lite:ver<0.0.5> {
     }
 
     method !finish-page {
-        if @!foot-notes {
-            temp $!style .= new; # avoid current styling, which may span pages
+        if @!footnotes {
+            temp $!style .= new: :lines-before(0); # avoid current styling
             $!tx = 0;
             $!ty = $!margin + ($!gutter-2) * $.line-height;
             $!gutter = 0;
             self!draw-line($!margin, $!ty, $!gfx.canvas.width - 2*$!margin, $!ty);
-            while @!foot-notes {
+            while @!footnotes {
                 $.pad(1);
-                my $foot-note = @!foot-notes.shift;
-                self!style: :link, { self.print($foot-note.shift) }; # [n]
-                $.pod2pdf($foot-note);
+                my $footnote = @!footnotes.shift;
+                self!style: :link, { self.print($footnote.shift) }; # [n]
+                $.pod2pdf($footnote);
             }
         }
     }
@@ -649,6 +650,7 @@ From Raku:
     =end code
 
 =head2 Exports
+
     class Pod::To::PDF::Lite;
     sub pod2pdf; # See below
 
