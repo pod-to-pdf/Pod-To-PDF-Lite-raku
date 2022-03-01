@@ -31,8 +31,11 @@ foobar.pl
 pod2pdf($=pod).save-as: "foobar.pdf";
 ```
 
-Exports class Pod::To::PDF::Lite; sub pod2pdf; # See below
-----------------------------------------------------------
+Exports
+-------
+
+    class Pod::To::PDF::Lite;
+    sub pod2pdf; # See below
 
 From command line:
 
@@ -67,7 +70,7 @@ Restrictions
 
   * no Links
 
-  * no Synax Highlighting
+  * no Syntax Highlighting
 
   * no Marked Content/Accessibility
 

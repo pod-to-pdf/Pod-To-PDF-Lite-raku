@@ -1,4 +1,4 @@
-unit class Pod::To::PDF::Lite:ver<0.0.5>;
+unit class Pod::To::PDF::Lite:ver<0.0.6>;
 use PDF::Lite;
 use PDF::Content;
 use PDF::Content::Color :&color;
@@ -743,7 +743,7 @@ L<PDF::Lite> minimalism, including:
 =item PDF Core Fonts only
 =item no Table of Contents or Index
 =item no Links
-=item no Synax Highlighting
+=item no Syntax Highlighting
 =item no Marked Content/Accessibility
 
 =end pod
