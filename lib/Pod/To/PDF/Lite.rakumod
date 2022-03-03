@@ -22,6 +22,7 @@ has $!ty; # text-flow y
 has UInt $!pad = 0;
 has @!footnotes;
 has Str %!metadata;
+has UInt:D $!level = 1;
 
 method pdf {
     $!pdf;
@@ -204,20 +205,15 @@ multi method pod2pdf(Pod::Block::Named $pod) {
                     $.pod2pdf: $pod.contents;
                 }
             }
-            default     {
-                given $pod.name {
-                    when 'TITLE'|'VERSION'|'SUBTITLE'|'NAME'|'AUTHOR'|'VERSION' {
-                        my $text = pod2text-inline($pod.contents);
-                        self!heading($text, :level(1))
-                            if $_ ~~ 'TITLE';
-                        self.metadata(.lc) ||= $text;
-                    }
-                    default {
-                        warn "unrecognised POD named block: $_";
-                        $.say($_);
-                        $.pod2pdf($pod.contents);
-                    }
-                }
+            when 'TITLE'|'VERSION'|'SUBTITLE'|'NAME'|'AUTHOR'|'VERSION' {
+                self.metadata(.lc) ||= pod2text-inline($pod.contents);
+            }
+            default {
+                warn "unrecognised POD named block: $_"
+                    if $_ eq .uc|.lc;
+                temp $!level += 1;
+                self!heading($_, :$!level);
+                $.pod2pdf($pod.contents);
             }
         }
     }
@@ -529,7 +525,7 @@ method !heading(Str:D $Title, Level :$level = 2, :$underline = $level == 1) {
         when 5 { $italic = True; }
     }
 
-    self!style: :tag('H' ~ $level), :$font-size, :$bold, :$italic, :$underline, :$lines-before, {
+    self!style: :$font-size, :$bold, :$italic, :$underline, :$lines-before, {
 
 
         @.say($Title);

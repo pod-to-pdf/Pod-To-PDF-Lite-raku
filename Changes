@@ -1,6 +1,7 @@
 Revision history for Pod-To-PDF-Lite
 
 {{$NEXT}}
+    - Handle nested named blocks as sub-sections
 
 0.0.6  2022-03-02T11:25:03+13:00
     - Added metadata
