@@ -205,14 +205,25 @@ multi method pod2pdf(Pod::Block::Named $pod) {
                     $.pod2pdf: $pod.contents;
                 }
             }
-            when 'TITLE'|'VERSION'|'SUBTITLE'|'NAME'|'AUTHOR'|'VERSION' {
-                self.metadata(.lc) ||= pod2text-inline($pod.contents);
+            when  'TITLE'|'SUBTITLE' {
+                $.pad(0);
+                temp $!level = $_ eq 'TITLE' ?? 1 !! 2;
+                my $title = pod2text-inline($pod.contents);
+                self.metadata(.lc) ||= $title;
+                self!heading($title);
             }
+
             default {
-                warn "unrecognised POD named block: $_"
-                    if $_ eq .uc|.lc;
+                when 'NAME'|'AUTHOR'|'VERSION' {
+                    self.metadata(.lc) ||= pod2text-inline($pod.contents);
+                }
+                my $name = $_;
                 temp $!level += 1;
-                self!heading($_, :$!level);
+                if $name eq .uc {
+                    $!level = 2;
+                    $name .= tclc;
+                }
+                self!heading($name);
                 $.pod2pdf($pod.contents);
             }
         }
@@ -511,7 +522,7 @@ method !style(&codez, Int :$indent, Bool :$pad, |c) {
     $pad ?? $.pad(&codez) !! &codez();
 }
 
-method !heading(Str:D $Title, Level :$level = 2, :$underline = $level == 1) {
+method !heading(Str:D $Title, Level :$level = $!level, :$underline = $level == 1) {
     my constant HeadingSizes = 20, 16, 13, 11.5, 10, 10;
     my $font-size = HeadingSizes[$level - 1];
     my Bool $bold   = $level <= 4;
@@ -679,9 +690,8 @@ multi method metadata(PodMetaType $t) is rw {
 }
 
 =begin pod
-=TITLE
-
-Pod::To::PDF::Lite - Pod to PDF draft renderer
+=TITLE Pod::To::PDF::Lite
+=SUBTITLE  Pod to PDF draft renderer
 
 =head2 Description
 
