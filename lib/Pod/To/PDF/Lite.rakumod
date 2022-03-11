@@ -7,8 +7,8 @@ use Pod::To::PDF::Lite::Style;
 use Pod::To::Text;
 use File::Temp;
 
-subset Level of Int:D where 1..6;
-my constant Gutter = 3;
+subset Level of Int:D where 0..6;
+my constant Gutter = 1;
 
 has PDF::Lite $.pdf is built .= new;
 has PDF::Lite::Page $!page;
@@ -207,7 +207,7 @@ multi method pod2pdf(Pod::Block::Named $pod) {
             }
             when  'TITLE'|'SUBTITLE' {
                 $.pad(0);
-                temp $!level = $_ eq 'TITLE' ?? 1 !! 2;
+                temp $!level = $_ eq 'TITLE' ?? 0 !! 2;
                 my $title = pod2text-inline($pod.contents);
                 self.metadata(.lc) ||= $title;
                 self!heading($title);
@@ -393,14 +393,24 @@ multi method pod2pdf(Pod::Block::Declarator $pod) {
     self!style: :lines-before(3), :pad, {
         self!heading($type.tclc ~ ' ' ~ $name, :$level);
 
-        if $code {
-            $.pad(1);
-            self!code($decl ~ ' ' ~ $code);
+       if $pod.leading -> $pre-pod {
+            self!style: :pad, {
+                $.pad;
+                $.pod2pdf($pre-pod);
+            }
         }
 
-        if $pod.contents {
+        if $code {
+            self!style: :pad, {
+                self!code($decl ~ ' ' ~ $code);
+            }
+        }
+
+        if $pod.trailing -> $post-pod {
             $.pad;
-            $.pod2pdf($pod.contents);
+            self!style: :pad, {
+                $.pod2pdf($post-pod);
+            }
         }
     }
 }
@@ -522,9 +532,9 @@ method !style(&codez, Int :$indent, Bool :$pad, |c) {
     $pad ?? $.pad(&codez) !! &codez();
 }
 
-method !heading(Str:D $Title, Level :$level = $!level, :$underline = $level == 1) {
-    my constant HeadingSizes = 20, 16, 13, 11.5, 10, 10;
-    my $font-size = HeadingSizes[$level - 1];
+method !heading(Str:D $Title, Level :$level = $!level, :$underline = $level <= 1) {
+    my constant HeadingSizes = 24, 20, 16, 13, 11.5, 10, 10;
+    my $font-size = HeadingSizes[$level];
     my Bool $bold   = $level <= 4;
     my Bool $italic;
     my $lines-before = $.lines-before;
@@ -596,7 +606,7 @@ method !underline(PDF::Content::Text::Box $tb, :$tab = self!indent, ) {
 }
 
 method !gfx {
-    if self!height-remaining <  $.lines-before * $.line-height {
+    if !$!gfx.defined || self!height-remaining <  $.lines-before * $.line-height {
         self!new-page;
     }
     elsif $!tx > $!margin && $!tx > $!gfx.canvas.width - self!indent {
