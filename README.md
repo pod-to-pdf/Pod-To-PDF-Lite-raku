@@ -1,9 +1,12 @@
 TITLE
 =====
 
+Pod::To::PDF::Lite
 
+SUBTITLE
+========
 
-Pod::To::PDF::Lite - Pod to PDF draft renderer
+Pod to PDF draft renderer
 
 Description
 -----------
@@ -73,4 +76,9 @@ Restrictions
   * no Syntax Highlighting
 
   * no Marked Content/Accessibility
+
+See Also
+--------
+
+  * [Pod::To::PDF](Pod::To::PDF) - PDF rendering via [Cairo](Cairo)
 

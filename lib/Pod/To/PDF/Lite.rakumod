@@ -1,4 +1,4 @@
-unit class Pod::To::PDF::Lite:ver<0.0.7>;
+unit class Pod::To::PDF::Lite:ver<0.0.8>;
 use PDF::Lite;
 use PDF::Content;
 use PDF::Content::Color :&color;
@@ -761,5 +761,9 @@ L<PDF::Lite> minimalism, including:
 =item no Links
 =item no Syntax Highlighting
 =item no Marked Content/Accessibility
+
+=head2 See Also
+
+=item L<Pod::To::PDF> - PDF rendering via L<Cairo>
 
 =end pod
