@@ -208,9 +208,8 @@ multi method pod2pdf(Pod::Block::Named $pod) {
             when  'TITLE'|'SUBTITLE' {
                 $.pad(0);
                 temp $!level = $_ eq 'TITLE' ?? 0 !! 2;
-                my $title = pod2text-inline($pod.contents);
-                self.metadata(.lc) ||= $title;
-                self!heading($title);
+                self.metadata(.lc) ||= pod2text-inline($pod.contents);
+                self!heading($pod.contents);
             }
 
             default {
@@ -238,8 +237,8 @@ multi method pod2pdf(Pod::Block::Code $pod) {
 
 multi method pod2pdf(Pod::Heading $pod) {
     $.pad: {
-        my Level $level = min($pod.level, 6);
-        self!heading( pod2text-inline($pod.contents), :$level);
+        $!level = min($pod.level, 6);
+        self!heading: $pod.contents;
     }
 }
 
@@ -446,6 +445,10 @@ multi method pod2pdf(Str $pod) {
     $.print($pod);
 }
 
+multi method pod2pdf(List:D $pod) {
+    $.pod2pdf($_) for $pod.List;
+}
+
 multi method pod2pdf($pod) {
     warn "fallback render of {$pod.WHAT.raku}";
     $.say: pod2text($pod);
@@ -532,7 +535,7 @@ method !style(&codez, Int :$indent, Bool :$pad, |c) {
     $pad ?? $.pad(&codez) !! &codez();
 }
 
-method !heading(Str:D $Title, Level :$level = $!level, :$underline = $level <= 1) {
+method !heading($pod is copy, Level :$level = $!level, :$underline = $level <= 1) {
     my constant HeadingSizes = 24, 20, 16, 13, 11.5, 10, 10;
     my $font-size = HeadingSizes[$level];
     my Bool $bold   = $level <= 4;
@@ -547,10 +550,9 @@ method !heading(Str:D $Title, Level :$level = $!level, :$underline = $level <= 1
     }
 
     self!style: :$font-size, :$bold, :$italic, :$underline, :$lines-before, {
-
-
-        @.say($Title);
-    }
+        $.pod2pdf: strip-para($pod);
+        $.say;
+   }
 }
 
 method !code(Str $code is copy, :$inline) {
@@ -689,6 +691,15 @@ method !set-metadata(PodMetaType $key, $value) {
     my $info = ($!pdf.Info //= {});
     $info{$pdf-key} = $pdf-value;
 }
+
+# to reduce the common case <Hn><P>Xxxx<P></Hn> -> <Hn>Xxxx</Hn>
+multi sub strip-para(List $_ where +$_ == 1) {
+    .map(&strip-para).List;
+}
+multi sub strip-para(Pod::Block::Para $_) {
+    .contents;
+}
+multi sub strip-para($_) { $_ }
 
 multi method metadata(PodMetaType $t) is rw {
     Proxy.new(
