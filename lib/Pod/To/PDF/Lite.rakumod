@@ -1,4 +1,4 @@
-unit class Pod::To::PDF::Lite:ver<0.0.8>;
+unit class Pod::To::PDF::Lite:ver<0.0.9>;
 use PDF::Lite;
 use PDF::Content;
 use PDF::Content::Color :&color;
