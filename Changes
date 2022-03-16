@@ -1,6 +1,8 @@
 Revision history for Pod-To-PDF-Lite
 
 {{$NEXT}}
+    - Fallback handling of Placement Links as "(see: <url>)"
+    - Font-loading fixes
 
 0.0.8  2022-03-12T08:59:29+13:00
     - Revised handling of uppercase =TITLE =AUTHOR, etc. These are

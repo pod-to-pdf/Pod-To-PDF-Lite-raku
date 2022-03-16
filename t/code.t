@@ -9,7 +9,7 @@ plan 1;
 my PDF::Lite $pdf = pod2pdf($=pod);
 $pdf.id = $*PROGRAM-NAME.fmt('%-16.16s');
 
-$pdf<Info><CreationDate>:delete; # because this is variable
+$pdf<Info>:delete; # because this is variable
 lives-ok {$pdf.save-as: "t/code.pdf", :!info;}
 
 =begin pod

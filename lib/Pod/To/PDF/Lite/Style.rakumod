@@ -21,8 +21,8 @@ constant %CoreFont = %(
     # Normal Fonts                 # Mono Fonts
     :n-n-n<times>,             :n-n-M<courier>,  
     :B-n-n<times-bold>,        :B-n-M<courier-bold>,
-    :n-I-n<times-italic>,      :n-I-M<courier-oblique>
-    :B-I-n<times-boldoitalic>, :B-I-M<courier-boldoblique>
+    :n-I-n<times-italic>,      :n-I-M<courier-oblique>,
+    :B-I-n<times-bolditalic>,  :B-I-M<courier-boldoblique>
 );
 my subset FontKey of Str where %CoreFont{$_}:exists;
 method !font-key {

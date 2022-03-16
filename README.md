@@ -43,7 +43,7 @@ Exports
 From command line:
 
 ```shell
-$ raku --doc=PDF::Lite lib/to/class.rakumod | xargs xpdf
+$ raku --doc=PDF::Lite lib/to/class.rakumod | xargs evince
 ```
 
 From Raku code, the `pod2pdf` function returns a [PDF::Lite](PDF::Lite) object which can be further manipulated, or saved to a PDF file.
@@ -59,7 +59,7 @@ foobar.raku
     foobarraku <options> files ...
 
 my PDF::Lite $pdf = pod2pdf($=pod);
-$pdf.save-as: "class.pdf"
+$pdf.save-as: "foobar.pdf"
 ```
 
 Restrictions

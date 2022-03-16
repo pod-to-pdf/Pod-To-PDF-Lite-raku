@@ -290,6 +290,9 @@ multi method pod2pdf(Pod::FormattingCode $pod) {
                 $.pod2pdf($pod.contents);
             }
         }
+        when 'E' {
+            $.pod2pdf($pod.contents);
+        }
         when 'Z' {
             # invisable
         }
@@ -301,6 +304,15 @@ multi method pod2pdf(Pod::FormattingCode $pod) {
             my $text = pod2text-inline($pod.contents);
             self!style: :link, {
                 $.print($text);
+            }
+        }
+        when 'P' {
+            if pod2text-inline($pod.contents) -> $url {
+                $.pod2pdf('(see: ');
+                self!style: :link, {
+                    $.print($url);
+                }
+                $.pod2pdf(')');
             }
         }
         default {
@@ -744,7 +756,7 @@ From Raku:
 
 From command line:
     =begin code :lang<shell>
-    $ raku --doc=PDF::Lite lib/to/class.rakumod | xargs xpdf
+    $ raku --doc=PDF::Lite lib/to/class.rakumod | xargs evince
     =end code
 From Raku code, the C<pod2pdf> function returns a L<PDF::Lite> object which can
 be further manipulated, or saved to a PDF file.
@@ -760,7 +772,7 @@ be further manipulated, or saved to a PDF file.
         foobarraku <options> files ...
 
     my PDF::Lite $pdf = pod2pdf($=pod);
-    $pdf.save-as: "class.pdf"
+    $pdf.save-as: "foobar.pdf"
     =end code
 
 =head2 Restrictions
