@@ -15,7 +15,7 @@ jobs:
         os:
           - ubuntu-latest
           #- macOS-latest
-          #- windows-latest
+          - windows-latest
         raku-version:
           - 'latest'
           - '2021.10'
@@ -25,6 +25,8 @@ jobs:
       - uses: Raku/setup-raku@v1
         with:
           raku-version: ${{ matrix.raku-version }}
+      - if: matrix.os == 'macOS-latest'
+        run: brew install openssl
       - name: Install Dependencies
         run: |
           # install and test if need be (includes [test-depends])
