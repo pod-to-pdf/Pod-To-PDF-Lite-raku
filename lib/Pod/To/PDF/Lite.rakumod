@@ -4,7 +4,6 @@ use PDF::Content;
 use PDF::Content::Color :&color;
 use PDF::Content::Text::Box;
 use Pod::To::PDF::Lite::Style;
-use Pod::To::Text;
 use File::Temp;
 
 subset Level of Int:D where 0..6;
@@ -23,6 +22,7 @@ has UInt $!pad = 0;
 has @!footnotes;
 has Str %!metadata;
 has UInt:D $!level = 1;
+has %.replace;
 
 method pdf {
     $!pdf;
@@ -141,7 +141,7 @@ method !table-row(@row, @widths, Bool :$header) {
 
 # generate content of a single table cell
 method !table-cell($pod) {
-    my $text = pod2text-inline($pod);
+    my $text = $.pod2text-inline($pod);
     self!text-box: $text, :width(0), :height(0), :indent(0);
 }
 
@@ -206,23 +206,21 @@ multi method pod2pdf(Pod::Block::Named $pod) {
                 }
             }
             when  'TITLE'|'SUBTITLE' {
-                $.pad(0);
                 temp $!level = $_ eq 'TITLE' ?? 0 !! 2;
-                self.metadata(.lc) ||= pod2text-inline($pod.contents);
-                self!heading($pod.contents);
+                self.metadata(.lc) ||= $.pod2text-inline($pod.contents);
+                self!heading($pod.contents, :pad(1));
             }
 
             default {
-                when 'NAME'|'AUTHOR'|'VERSION' {
-                    self.metadata(.lc) ||= pod2text-inline($pod.contents);
-                }
                 my $name = $_;
                 temp $!level += 1;
-                if $name eq .uc {
+                if $name eq $name.uc {
+                    if $name ~~ 'VERSION'|'NAME'|'AUTHOR' {
+                        self.metadata(.lc) ||= $.pod2text-inline($pod.contents);
+                    }
                     $!level = 2;
-                    $name .= tclc;
+                    $name = .tclc;
                 }
-                self!heading($name);
                 $.pod2pdf($pod.contents);
             }
         }
@@ -231,7 +229,7 @@ multi method pod2pdf(Pod::Block::Named $pod) {
 
 multi method pod2pdf(Pod::Block::Code $pod) {
     $.pad: {
-        self!code: pod2text-code($pod);
+        self!code: $.pod2text($pod);
     }
 }
 
@@ -248,6 +246,25 @@ multi method pod2pdf(Pod::Block::Para $pod) {
     }
 }
 
+has %!replacing;
+method !replace(Pod::FormattingCode $pod where .type eq 'R', &continue) {
+    my $place-holder = $.pod2text($pod.contents);
+
+    die "unable to recursively replace R\<$place-holder\>"
+         if %!replacing{$place-holder}++;
+
+    my $new-pod = %!replace{$place-holder};
+    without $new-pod {
+        note "replacement not specified for R\<$place-holder\>";
+        $_ = $pod.contents;
+    }
+
+    my $rv := &continue($new-pod);
+
+    %!replacing{$place-holder}:delete;;
+    $rv;
+}
+
 multi method pod2pdf(Pod::FormattingCode $pod) {
     given $pod.type {
          when 'B' {
@@ -256,7 +273,7 @@ multi method pod2pdf(Pod::FormattingCode $pod) {
             }
         }
         when 'C' {
-            self!code: pod2text($pod), :inline;
+            self!code: $.pod2text($pod), :inline;
         }
         when 'T' {
             self!style: :mono, {
@@ -281,7 +298,7 @@ multi method pod2pdf(Pod::FormattingCode $pod) {
                 temp $!style .= new;
                 temp $!tx = $!margin;
                 temp $!ty = $!page.height;
-                my $draft-footnote = $ind ~ pod2text-inline($pod.contents);
+                my $draft-footnote = $ind ~ $.pod2text-inline($pod.contents);
                 $!gutter += self!text-box($draft-footnote).lines;
             }
         }
@@ -301,13 +318,13 @@ multi method pod2pdf(Pod::FormattingCode $pod) {
             $.pod2pdf($pod.contents);
         }
         when 'L' {
-            my $text = pod2text-inline($pod.contents);
+            my $text = $.pod2text-inline($pod.contents);
             self!style: :link, {
                 $.print($text);
             }
         }
         when 'P' {
-            if pod2text-inline($pod.contents) -> $url {
+            if $.pod2text-inline($pod.contents) -> $url {
                 $.pod2pdf('(see: ');
                 self!style: :link, {
                     $.print($url);
@@ -315,8 +332,11 @@ multi method pod2pdf(Pod::FormattingCode $pod) {
                 $.pod2pdf(')');
             }
         }
+        when 'R' {
+            self!replace: $pod, {$.pod2pdf($_)};
+        }
         default {
-            warn "todo: POD formatting code: $_";
+            warn "unhandled POD formatting code: $_\<\>";
             $.pod2pdf($pod.contents);
         }
     }
@@ -463,7 +483,7 @@ multi method pod2pdf(List:D $pod) {
 
 multi method pod2pdf($pod) {
     warn "fallback render of {$pod.WHAT.raku}";
-    $.say: pod2text($pod);
+    $.say: $.pod2text($pod);
 }
 
 multi method say {
@@ -547,7 +567,7 @@ method !style(&codez, Int :$indent, Bool :$pad, |c) {
     $pad ?? $.pad(&codez) !! &codez();
 }
 
-method !heading($pod is copy, Level :$level = $!level, :$underline = $level <= 1) {
+method !heading($pod is copy, Level :$level = $!level, :$underline = $level <= 1, :$!pad = 2) {
     my constant HeadingSizes = 24, 20, 16, 13, 11.5, 10, 10;
     my $font-size = HeadingSizes[$level];
     my Bool $bold   = $level <= 4;
@@ -563,7 +583,6 @@ method !heading($pod is copy, Level :$level = $!level, :$underline = $level <= 1
 
     self!style: :$font-size, :$bold, :$italic, :$underline, :$lines-before, {
         $.pod2pdf: strip-para($pod);
-        $.say;
    }
 }
 
@@ -664,15 +683,24 @@ method !new-page {
 
 method !indent { $!margin  +  10 * $!indent; }
 
-# we're currently throwing code formatting away
-multi sub pod2text-code(Pod::Block $pod) {
-    $pod.contents.map(&pod2text-code).join;
+method pod2text-inline($pod) {
+    $.pod2text($pod).subst(/\s+/, ' ', :g);
 }
-multi sub pod2text-code(Str $pod) { $pod }
 
-sub pod2text-inline($pod) {
-    pod2text($pod).subst(/\s+/, ' ', :g);
+multi method pod2text(Pod::FormattingCode $pod) {
+    given $pod.type {
+        when 'N'|'Z' { '' }
+        when 'R' { self!replace: $pod, { $.pod2text($_) } }
+        default  { $.pod2text: $pod.contents }
+    }
 }
+
+multi method pod2text(Pod::Block $pod) {
+    $pod.contents.map({$.pod2text($_)}).join;
+}
+multi method pod2text(Str $pod) { $pod }
+multi method pod2text($pod) { $pod.map({$.pod2text($_)}).join }
+
 
 subset PodMetaType of Str where 'title'|'subtitle'|'author'|'name'|'version';
 
