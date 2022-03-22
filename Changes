@@ -2,6 +2,12 @@ Revision history for Pod-To-PDF-Lite
 
 {{$NEXT}}
 
+0.0.11  2022-03-22T15:25:31+13:00
+    - Handle formatting in code blocks, e.g.: =begin code :handle<B>
+    - Page break on =TITLE
+    - Fix code font-sizing. e.g. to fix appearance of:
+      =head1 Large header with C<code>
+
 0.0.10  2022-03-19T09:46:56+13:00
     - Handle replacement formatting (R<>). Added :%replace option to
       podf2pdf().
