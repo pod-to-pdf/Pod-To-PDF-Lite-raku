@@ -1,6 +1,8 @@
 Revision history for Pod-To-PDF-Lite
 
 {{$NEXT}}
+
+0.0.12  2022-03-23T07:46:17+13:00
     - Improved handling of page-breaks in code blocks
     - Moved repo to github pod-to-pdf organization.
 
