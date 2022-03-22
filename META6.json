@@ -20,7 +20,7 @@
   },
   "resources": [
   ],
-  "source-url": "git://github.com/pdf-raku/Pod-to-PDF-Lite-raku.git",
+  "source-url": "git://github.com/pod-to-pdf/Pod-to-PDF-Lite-raku.git",
   "tags": [
     "pdf",
     "pod"
