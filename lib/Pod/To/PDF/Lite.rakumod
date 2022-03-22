@@ -13,7 +13,7 @@ has PDF::Lite $.pdf is built .= new;
 has PDF::Lite::Page $!page;
 has PDF::Content $!gfx;
 has UInt $!indent = 0;
-has Pod::To::PDF::Lite::Style $.style handles<font font-size leading line-height bold italic mono underline lines-before link> .= new;
+has Pod::To::PDF::Lite::Style $.style handles<font font-size leading line-height bold italic mono underline lines-before link verbatim> .= new;
 has $.margin = 20;
 has $!gutter = Gutter;
 has $!tx = $!margin; # text-flow x
@@ -228,8 +228,8 @@ multi method pod2pdf(Pod::Block::Named $pod) {
 }
 
 multi method pod2pdf(Pod::Block::Code $pod) {
-    $.pad: {
-        self!code: $.pod2text($pod);
+    self!style: :pad, :lines-before(3), {
+        self!code: $pod.contents;
     }
 }
 
@@ -271,9 +271,12 @@ multi method pod2pdf(Pod::FormattingCode $pod) {
             self!style: :bold, {
                 $.pod2pdf($pod.contents);
             }
-        }
-        when 'C' {
-            self!code: $.pod2text($pod), :inline;
+         }
+         when 'C' {
+             my $font-size = $.font-size * .85;
+             self!style: :mono, :$font-size, {
+                 $.print: $.pod2text($pod);
+             }
         }
         when 'T' {
             self!style: :mono, {
@@ -433,7 +436,7 @@ multi method pod2pdf(Pod::Block::Declarator $pod) {
 
         if $code {
             self!style: :pad, {
-                self!code($decl ~ ' ' ~ $code);
+                self!code([$decl ~ ' ' ~ $code]);
             }
         }
 
@@ -501,7 +504,7 @@ method !text-box(
     :$width = self!gfx.canvas.width - self!indent - $!margin,
     :$height = self!height-remaining,
     |c) {
-    PDF::Content::Text::Box.new: :$text, :indent($!tx - $!margin), :$.leading, :$.font, :$.font-size, :$width, :$height, |c;
+    PDF::Content::Text::Box.new: :$text, :indent($!tx - $!margin), :$.leading, :$.font, :$.font-size, :$width, :$height, :$.verbatim, |c;
 }
 
 method !pad-here {
@@ -530,30 +533,20 @@ method print(Str $text, Bool :$nl, :$reflow = True, |c) {
 
     $gfx.Restore if $.link;
 
-    # calculate text bounding box and advance x, y
-    my $lines = +$tb.lines;
-    my $x0 = $pos.value[0];
+    # update text position ($!tx, $!ty)
     if $nl {
         # advance to next line
         $!tx = $!margin;
     }
     else {
         $!tx = $!margin if $tb.lines > 1;
-        $x0 += $!tx;
         # continue this line
-            with $tb.lines.pop {
-                $w = .content-width - .indent;
-                $!tx += $w + $tb.space-width;
-            }
+        with $tb.lines.pop {
+            $w = .content-width - .indent;
+            $!tx += $w;
+        }
     }
     $!ty -= $tb.content-height;
-    my Str $overflow = $tb.overflow.join;
-    if $overflow && $reflow {
-        $.say() unless $nl;
-        @.print: $overflow, :$nl, |c;
-        $overflow = Nil;
-    }
-    ($x0, $!ty, $w, $h, $overflow);
 }
 
 method !text-position {
@@ -575,10 +568,10 @@ method !heading($pod is copy, Level :$level = $!level, :$underline = $level <= 1
     my $lines-before = $.lines-before;
 
     given $level {
-        when 1 { self!new-page; }
-        when 2 { $lines-before = 3; }
-        when 3 { $lines-before = 2; }
-        when 5 { $italic = True; }
+        when 0|1 { self!new-page; }
+        when 2   { $lines-before = 3; }
+        when 3   { $lines-before = 2; }
+        when 5   { $italic = True; }
     }
 
     self!style: :$font-size, :$bold, :$italic, :$underline, :$lines-before, {
@@ -586,30 +579,49 @@ method !heading($pod is copy, Level :$level = $!level, :$underline = $level <= 1
    }
 }
 
-method !code(Str $code is copy, :$inline) {
-    my $font-size = 8;
-    my $lines-before = $.lines-before;
-    $lines-before = min(+$code.lines, 3)
-        unless $inline;
+method !code(@contents is copy) {
+    @contents.pop if @contents.tail ~~ "\n";
+    my $font-size = $.font-size * .85;
 
-    self!style: :mono, :indent(!$inline), :$font-size, :$lines-before, {
-        $code .= chomp;
+    self!gfx;
 
-        while $code {
-            my (\x, \y, \w, \h, \overflow) = @.print: $code, :verbatim, :!reflow;
-            $code = overflow;
-            unless $inline {
-                # draw code-block background
-                my constant pad = 5;
-                my $x0 = self!indent;
-                my $width = $!gfx.canvas.width - $!margin - $x0;
-                $!gfx.graphics: {
-                    .FillColor = color 0;
-                    .StrokeColor = color 0;
-                    .FillAlpha = 0.1;
-                    .StrokeAlpha = 0.25;
-                    .Rectangle: $x0 - pad, y - pad, $width + pad*2, h + pad*2;
-                    .paint: :fill, :stroke;
+    self!style: :mono, :indent, :$font-size, :lines-before(0), :pad, :verbatim, {
+        my $x0 = self!indent;
+        my $width = self!gfx.canvas.width - $!margin - $x0;
+        self!pad-here;
+        my $y0 = $!ty;
+        my constant pad = 5;
+        my @plain-text;
+
+        for 0 ..^ @contents -> $i {
+            given @contents[$i] {
+                when Str {
+                    @plain-text.push: $_;
+                    my $at-end = $i == @contents-1;
+                    my $page-feed = !$at-end && $_ eq "\n" && self!lines-remaining <= 0;
+                    if $at-end || $page-feed {
+                        $.print: @plain-text.join;
+                        @plain-text = ();
+                        $!gfx.graphics: {
+                            .FillColor = color 0;
+                            .StrokeColor = color 0;
+                            .FillAlpha = 0.1;
+                            .StrokeAlpha = 0.25;
+                            .Rectangle: $x0 - pad, $!ty - pad, $width + pad*2, $y0 - $!ty + pad*3;
+                            .paint: :fill, :stroke;
+                        }
+
+                        self!new-page if $page-feed;
+                        $y0 = $!ty;
+                    }
+                }
+                default {
+                    # presumably formatted
+                    if @plain-text {
+                        $.print: @plain-text.join;
+                        @plain-text = ();
+                    }
+                    $.pod2pdf($_);
                 }
             }
         }
@@ -639,7 +651,7 @@ method !underline(PDF::Content::Text::Box $tb, :$tab = self!indent, ) {
 }
 
 method !gfx {
-    if !$!gfx.defined || self!height-remaining <  $.lines-before * $.line-height {
+    if !$!gfx.defined || self!height-remaining < $.lines-before * $.line-height {
         self!new-page;
     }
     elsif $!tx > $!margin && $!tx > $!gfx.canvas.width - self!indent {
@@ -652,6 +664,10 @@ method !top { $!page.height - 2 * $!margin; }
 method !bottom { $!margin + ($!gutter-2) * $.line-height; }
 method !height-remaining {
     $!ty - $!margin - $!gutter * $.line-height;
+}
+
+method !lines-remaining {
+    (self!height-remaining / $.line-height + 0.01).Int;
 }
 
 method !finish-page {

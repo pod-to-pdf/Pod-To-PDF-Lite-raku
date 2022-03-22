@@ -22,15 +22,15 @@ endobj
 endobj
 
 4 0 obj
-<< /Length 1267 >> stream
+<< /Length 1291 >> stream
 BT
   1 0 0 1 20 752 Tm
   /F1 10 Tf
   (asdf) Tj
 ET
 BT
-  1 0 0 1 30 734.4 Tm
-  /F2 8 Tf
+  1 0 0 1 30 733.3 Tm
+  /F2 8.5 Tf
   (indented) Tj
 ET
 q
@@ -38,19 +38,19 @@ q
   0 G
   /GS1 gs
   /GS2 gs
-  25 729.4 572 18.8 re
+  25 728.3 572 15 re
   B
 Q
 BT
-  1 0 0 1 20 712.4 Tm
+  1 0 0 1 20 711.3 Tm
   /F1 10 Tf
   (asdf) Tj
 ET
 BT
-  1 0 0 1 30 694.8 Tm
-  /F2 8 Tf
+  1 0 0 1 30 692.6 Tm
+  /F2 8.5 Tf
   (indented) Tj
-  8.8 TL
+  9.35 TL
   T*
   (multi) Tj
   T*
@@ -61,17 +61,17 @@ q
   0 G
   /GS1 gs
   /GS2 gs
-  25 672.2 572 36.4 re
+  25 668.9 572 33.7 re
   B
 Q
 BT
-  1 0 0 1 20 655.2 Tm
+  1 0 0 1 20 651.9 Tm
   /F1 10 Tf
   (asdf) Tj
 ET
 BT
-  1 0 0 1 30 637.6 Tm
-  /F2 8 Tf
+  1 0 0 1 30 633.2 Tm
+  /F2 8.5 Tf
   (indented) Tj
   T*
   (multi) Tj
@@ -93,17 +93,17 @@ q
   0 G
   /GS1 gs
   /GS2 gs
-  25 571 572 80.4 re
+  25 562.75 572 80.45 re
   B
 Q
 BT
-  1 0 0 1 20 554 Tm
+  1 0 0 1 20 545.75 Tm
   /F1 10 Tf
   (asdf) Tj
 ET
 BT
-  1 0 0 1 30 536.4 Tm
-  /F2 8 Tf
+  1 0 0 1 30 527.05 Tm
+  /F2 8.5 Tf
   (Abbreviated) Tj
 ET
 q
@@ -111,17 +111,17 @@ q
   0 G
   /GS1 gs
   /GS2 gs
-  25 531.4 572 18.8 re
+  25 522.05 572 15 re
   B
 Q
 BT
-  1 0 0 1 20 514.4 Tm
+  1 0 0 1 20 505.05 Tm
   /F1 10 Tf
   (asdf) Tj
 ET
 BT
-  1 0 0 1 30 496.8 Tm
-  /F2 8 Tf
+  1 0 0 1 30 486.35 Tm
+  /F2 8.5 Tf
   (Paragraph) Tj
   T*
   (code) Tj
@@ -131,17 +131,17 @@ q
   0 G
   /GS1 gs
   /GS2 gs
-  25 483 572 27.6 re
+  25 472 572 24.35 re
   B
 Q
 BT
-  1 0 0 1 20 466 Tm
+  1 0 0 1 20 455 Tm
   /F1 10 Tf
   (asdf) Tj
 ET
 BT
-  1 0 0 1 30 448.4 Tm
-  /F2 8 Tf
+  1 0 0 1 30 436.3 Tm
+  /F2 8.5 Tf
   (Delimited) Tj
   T*
   (code) Tj
@@ -151,11 +151,11 @@ q
   0 G
   /GS1 gs
   /GS2 gs
-  25 434.6 572 27.6 re
+  25 421.95 572 24.35 re
   B
 Q
 BT
-  1 0 0 1 20 417.6 Tm
+  1 0 0 1 20 404.95 Tm
   /F1 10 Tf
   (asdf) Tj
 ET
@@ -195,12 +195,12 @@ xref
 0000000076 00000 n 
 0000000136 00000 n 
 0000000334 00000 n 
-0000001654 00000 n 
-0000001701 00000 n 
-0000001749 00000 n 
-0000001857 00000 n 
+0000001678 00000 n 
+0000001725 00000 n 
+0000001773 00000 n 
+0000001881 00000 n 
 trailer
 << /ID [ (t/code.t        ) (t/code.t        ) ] /Root 1 0 R /Size 9 >>
 startxref
-1961
+1985
 %%EOF
