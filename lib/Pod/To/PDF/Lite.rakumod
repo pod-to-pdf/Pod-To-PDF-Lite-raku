@@ -23,6 +23,7 @@ has @!footnotes;
 has Str %!metadata;
 has UInt:D $!level = 1;
 has %.replace;
+has Numeric $!code-start-y;
 
 method pdf {
     $!pdf;
@@ -547,6 +548,13 @@ method print(Str $text, Bool :$nl, :$reflow = True, |c) {
         }
     }
     $!ty -= $tb.content-height;
+
+    if $tb.overflow {
+        my $in-code-block = $!code-start-y.defined;
+        self!new-page;
+        $!code-start-y = $!ty if $in-code-block;
+        self.print($tb.overflow.join, :$nl);
+    }
 }
 
 method !text-position {
@@ -579,6 +587,23 @@ method !heading($pod is copy, Level :$level = $!level, :$underline = $level <= 1
    }
 }
 
+method !finish-code {
+    my constant pad = 5;
+    with $!code-start-y -> $y0 {
+        my $x0 = self!indent;
+        my $width = self!gfx.canvas.width - $!margin - $x0;
+        $!gfx.graphics: {
+            .FillColor = color 0;
+            .StrokeColor = color 0;
+            .FillAlpha = 0.1;
+            .StrokeAlpha = 0.25;
+            .Rectangle: $x0 - pad, $!ty - pad, $width + pad*2, $y0 - $!ty + pad*3;
+            .paint: :fill, :stroke;
+        }
+        $!code-start-y = Nil;
+    }
+}
+
 method !code(@contents is copy) {
     @contents.pop if @contents.tail ~~ "\n";
     my $font-size = $.font-size * .85;
@@ -586,45 +611,30 @@ method !code(@contents is copy) {
     self!gfx;
 
     self!style: :mono, :indent, :$font-size, :lines-before(0), :pad, :verbatim, {
-        my $x0 = self!indent;
-        my $width = self!gfx.canvas.width - $!margin - $x0;
         self!pad-here;
-        my $y0 = $!ty;
-        my constant pad = 5;
         my @plain-text;
 
         for 0 ..^ @contents -> $i {
+            $!code-start-y //= $!ty;
             given @contents[$i] {
                 when Str {
                     @plain-text.push: $_;
-                    my $at-end = $i == @contents-1;
-                    my $page-feed = !$at-end && $_ eq "\n" && self!lines-remaining <= 0;
-                    if $at-end || $page-feed {
-                        $.print: @plain-text.join;
-                        @plain-text = ();
-                        $!gfx.graphics: {
-                            .FillColor = color 0;
-                            .StrokeColor = color 0;
-                            .FillAlpha = 0.1;
-                            .StrokeAlpha = 0.25;
-                            .Rectangle: $x0 - pad, $!ty - pad, $width + pad*2, $y0 - $!ty + pad*3;
-                            .paint: :fill, :stroke;
-                        }
-
-                        self!new-page if $page-feed;
-                        $y0 = $!ty;
-                    }
                 }
-                default {
+                default  {
                     # presumably formatted
                     if @plain-text {
                         $.print: @plain-text.join;
                         @plain-text = ();
                     }
+
                     $.pod2pdf($_);
                 }
             }
         }
+        if @plain-text {
+            $.print: @plain-text.join;
+        }
+        self!finish-code;
     }
 }
 
@@ -671,6 +681,8 @@ method !lines-remaining {
 }
 
 method !finish-page {
+    self!finish-code
+        if $!code-start-y;
     if @!footnotes {
         temp $!style .= new: :lines-before(0); # avoid current styling
         $!tx = 0;

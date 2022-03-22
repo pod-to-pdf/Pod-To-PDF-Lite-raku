@@ -52,4 +52,10 @@ code
 =end code
 
 asdf
+
+=begin code :allow<B>
+B<Formatted>
+code
+=end code
+
 =end pod
