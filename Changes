@@ -1,6 +1,8 @@
 Revision history for Pod-To-PDF-Lite
 
 {{$NEXT}}
+
+0.0.13  2022-04-04T11:31:40+12:00
     - Add options :$width, :$height, and :@fonts.
 
 0.0.12  2022-03-23T07:46:17+13:00

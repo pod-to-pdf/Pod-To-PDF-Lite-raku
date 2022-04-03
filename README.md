@@ -73,7 +73,7 @@ Renders the specified Pod to a PDF::Lite object, which can then be further manip
 
 **`PDF::Lite :$pdf`**
 
-A PDF::Lite object to add pages to.
+An existing PDF::Lite object to add pages to.
 
 **`UInt:D :$width, UInt:D :$height`**
 

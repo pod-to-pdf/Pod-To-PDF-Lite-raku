@@ -1,4 +1,4 @@
-unit class Pod::To::PDF::Lite:ver<0.0.12>;
+unit class Pod::To::PDF::Lite:ver<0.0.13>;
 use PDF::Lite;
 use PDF::Content;
 use PDF::Content::Color :&color;
@@ -875,7 +875,7 @@ Renders the specified Pod to a PDF::Lite object, which can then be
 further manipulated or saved.
 
 =defn `PDF::Lite :$pdf`
-A PDF::Lite object to add pages to.
+An existing PDF::Lite object to add pages to.
 
 =defn `UInt:D :$width, UInt:D :$height`
 The page size in points (there are 72 points per inch).
