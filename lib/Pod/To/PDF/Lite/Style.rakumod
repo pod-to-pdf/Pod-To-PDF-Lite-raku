@@ -26,7 +26,7 @@ constant %CoreFont = %(
     :B-I-n<times-bolditalic>,  :B-I-M<courier-boldoblique>
 );
 my subset FontKey of Str where %CoreFont{$_}:exists;
-method !font-key {
+method font-key {
     join(
         '-', 
         ($!bold ?? 'B' !! 'n'),
@@ -37,10 +37,12 @@ method !font-key {
 
 method clone { nextwith :font(PDF::Content::FontObj), |%_; }
 
-method font {
+method font(:%font-map) {
     $!font //= do {
-        my FontKey:D $key = self!font-key;
-        my Str:D $font-name = %CoreFont{$key};
-        PDF::Content::Font::CoreFont.load-font($font-name);
+        my FontKey:D $key = self.font-key;
+        %font-map{$key} // do {
+            my Str:D $font-name = %CoreFont{$key};
+            PDF::Content::Font::CoreFont.load-font($font-name);
+        }
     }
 }

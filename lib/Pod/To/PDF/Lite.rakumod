@@ -9,11 +9,11 @@ use File::Temp;
 subset Level of Int:D where 0..6;
 my constant Gutter = 1;
 
-has PDF::Lite $.pdf is built .= new;
+has PDF::Lite $.pdf .= new;
 has PDF::Lite::Page $!page;
 has PDF::Content $!gfx;
 has UInt $!indent = 0;
-has Pod::To::PDF::Lite::Style $.style handles<font font-size leading line-height bold italic mono underline lines-before link verbatim> .= new;
+has Pod::To::PDF::Lite::Style $.style handles<font-size leading line-height bold italic mono underline lines-before link verbatim> .= new;
 has $.margin = 20;
 has $!gutter = Gutter;
 has $!tx = $!margin; # text-flow x
@@ -24,6 +24,7 @@ has Str %!metadata;
 has UInt:D $!level = 1;
 has %.replace;
 has Numeric $!code-start-y;
+has PDF::Content::FontObj %.font-map;
 
 method pdf {
     $!pdf;
@@ -34,27 +35,53 @@ method read($pod) {
     self!finish-page;
 }
 
-submethod TWEAK(Str :$lang = 'en', :$pod, :%metadata) {
+method !init-pdf(Str :$lang) {
     $!pdf.Root<Lang> //= $_ with $lang;
     given $!pdf.Info //= {} {
         .CreationDate //= DateTime.now;
         .Producer //= "{self.^name}-{self.^ver}";
         .Creator //= "Raku-{$*RAKU.version}, PDF::Lite-{PDF::Lite.^ver}; PDF::Content-{PDF::Content.^ver}; PDF-{PDF.^ver}";
     }
+}
+
+method !preload-fonts(@fonts) {
+    my $loader = (require ::('PDF::Font::Loader'));
+    for @fonts -> % ( Str :$file!, Bool :$bold, Bool :$italic, Bool :$mono ) {
+        # font preload
+        my Pod::To::PDF::Lite::Style $style .= new: :$bold, :$italic, :$mono;
+        if $file.IO.e {
+            %!font-map{$style.font-key} = $loader.load-font: :$file;
+        }
+        else {
+            warn "no such font file: $file";
+        }
+    }
+}
+
+submethod TWEAK(Str :$lang = 'en', :$pod, :%metadata, :@fonts) {
+    self!init-pdf(:$lang);
+    self!preload-fonts(@fonts)
+        if @fonts;
     self.metadata(.key.lc) = .value for %metadata.pairs;
     self.read($_) with $pod;
 }
 
-method render($class: $pod, |c) {
+method render(
+    $class: $pod,
+    IO() :$pdf-file = tempfile("pod2pdf-lite-****.pdf", :!unlink)[1],
+    UInt:D :$width  = 612,
+    UInt:D :$height = 792,
+    |c,
+) {
     state %cache{Any};
     %cache{$pod} //= do {
         # render method may be called more than once: Rakudo #2588
         my $renderer = $class.new(|c, :$pod);
         my PDF::Lite $pdf = $renderer.pdf;
-        # save to a temporary file, since PDF is a binary format
-        my (Str $file-name, IO::Handle $fh) = tempfile("pod2pdf-lite-****.pdf", :!unlink);
-        $pdf.save-as: $fh;
-        $file-name;
+        $pdf.media-box = 0, 0, $width, $height;
+        # save to a file, since PDF is a binary format
+        $pdf.save-as: $pdf-file;
+        $pdf-file.path;
     }
 }
 
@@ -498,6 +525,8 @@ multi method say(Str $text, |c) {
     @.print($text, :nl, |c);
 }
 
+method font { $!style.font: :%!font-map }
+
 multi method pad(&codez) { $.pad; &codez(); $.pad}
 multi method pad($!pad = 2) { }
 method !text-box(
@@ -790,7 +819,7 @@ Renders Pod to PDF draft documents via PDF::Lite.
 
 From command line:
 
-    $ raku --doc=PDF::Lite lib/to/class.rakumod | xargs xpdf
+    $ raku --doc=PDF::Lite lib/to/class.rakumod | xargs evince
 
 From Raku:
     =begin code :lang<raku>
@@ -831,14 +860,57 @@ be further manipulated, or saved to a PDF file.
     $pdf.save-as: "foobar.pdf"
     =end code
 
+
+=head2 Subroutines
+
+### sub pod2pdf()
+
+```raku
+sub pod2pdf(
+    Pod::Block $pod
+) returns PDF::Lite;
+```
+
+Renders the specified Pod to a PDF::Lite object, which can then be
+further manipulated or saved.
+
+=defn `PDF::Lite :$pdf`
+A PDF::Lite object to add pages to.
+
+=defn `UInt:D :$width, UInt:D :$height`
+The page size in points (there are 72 points per inch).
+
+=defn `UInt:D :$margin`
+The page margin in points (default 20).
+
+=defn `Hash :@fonts
+By default, Pod::To::PDF::Lite uses core fonts. This option can be used to preload selected fonts.
+
+Note: L<PDF::Font::Loader> must be installed, to use this option.
+
+=begin code :lang<raku>
+use PDF::Lite;
+use Pod::To::PDF::Lite;
+need PDF::Font::Loader; # needed to enable this option
+
+my @fonts = (
+    %(:file<fonts/Raku.ttf>),
+    %(:file<fonts/Raku-Bold.ttf>, :bold),
+    %(:file<fonts/Raku-Italic.ttf>, :italic),
+    %(:file<fonts/Raku-BoldItalic.ttf>, :bold, :italic),
+    %(:file<fonts/Raku-Mono.ttf>, :mono),
+);
+
+PDF::Lite $pdf = pod2pdf($=pod, :@fonts);
+$pdf.save-as: "pod.pdf";
+=end code
+
 =head2 Restrictions
 
 L<PDF::Lite> minimalism, including:
 
-=item PDF Core Fonts only
 =item no Table of Contents or Index
 =item no Links
-=item no Syntax Highlighting
 =item no Marked Content/Accessibility
 
 =head2 See Also

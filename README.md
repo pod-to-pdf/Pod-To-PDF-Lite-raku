@@ -18,7 +18,7 @@ Usage
 
 From command line:
 
-    $ raku --doc=PDF::Lite lib/to/class.rakumod | xargs xpdf
+    $ raku --doc=PDF::Lite lib/to/class.rakumod | xargs evince
 
 From Raku:
 
@@ -62,18 +62,58 @@ my PDF::Lite $pdf = pod2pdf($=pod);
 $pdf.save-as: "foobar.pdf"
 ```
 
+Subroutines
+-----------
+
+### sub pod2pdf()
+
+```raku sub pod2pdf( Pod::Block $pod ) returns PDF::Lite; ```
+
+Renders the specified Pod to a PDF::Lite object, which can then be further manipulated or saved.
+
+**`PDF::Lite :$pdf`**
+
+A PDF::Lite object to add pages to.
+
+**`UInt:D :$width, UInt:D :$height`**
+
+The page size in points (there are 72 points per inch).
+
+**`UInt:D :$margin`**
+
+The page margin in points (default 20).
+
+**`Hash :@fonts**
+
+By default, Pod::To::PDF::Lite uses core fonts. This option can be used to preload selected fonts.
+
+Note: [PDF::Font::Loader](PDF::Font::Loader) must be installed, to use this option.
+
+```raku
+use PDF::Lite;
+use Pod::To::PDF::Lite;
+need PDF::Font::Loader; # needed to enable this option
+
+my @fonts = (
+    %(:file<fonts/Raku.ttf>),
+    %(:file<fonts/Raku-Bold.ttf>, :bold),
+    %(:file<fonts/Raku-Italic.ttf>, :italic),
+    %(:file<fonts/Raku-BoldItalic.ttf>, :bold, :italic),
+    %(:file<fonts/Raku-Mono.ttf>, :mono),
+);
+
+PDF::Lite $pdf = pod2pdf($=pod, :@fonts);
+$pdf.save-as: "pod.pdf";
+```
+
 Restrictions
 ------------
 
 [PDF::Lite](PDF::Lite) minimalism, including:
 
-  * PDF Core Fonts only
-
   * no Table of Contents or Index
 
   * no Links
-
-  * no Syntax Highlighting
 
   * no Marked Content/Accessibility
 
