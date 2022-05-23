@@ -4,49 +4,17 @@ use PDF::Content;
 use PDF::Content::Color :&color;
 use PDF::Content::Text::Box;
 use Pod::To::PDF::Lite::Style;
+use Pod::To::PDF::Lite::Writer;
+use PDF::Content::FontObj;
 use File::Temp;
 
 subset Level of Int:D where 0..6;
-my constant Gutter = 1;
 
 has PDF::Lite $.pdf .= new;
 has Str %!metadata;
 has %.replace;
 has PDF::Content::FontObj %.font-map;
-
-class Writer is rw {
-    has PDF::Lite::Page $.page;
-    has PDF::Content $.gfx;
-    has Pod::To::PDF::Lite::Style $.style .= new;
-    has UInt:D $.level = 1;
-    has $.gutter = Gutter;
-    has UInt $!pad = 0;
-    has UInt $.indent = 0;
-    has $.margin = 20;
-    has $.tx = $!margin; # text-flow x
-    has $.ty; # text-flow y
-    has Numeric $.code-start-y;
-    has @.footnotes;
-
-    method new-line {
-        $!tx = $!margin;
-        $!ty -= $!style.line-height;
-    }
-    multi method pad(&codez) { $.pad; &codez(); $.pad}
-    multi method pad($!pad = 2) {$!pad}
-    method new-page($pdf) {
-        $.gutter = Gutter;
-        $!page = $pdf.add-page;
-        $!gfx = $!page.gfx;
-        $.tx = $.margin;
-        $.ty = $!page.height - 2 * $.margin;
-        # suppress whitespace before significant content
-        $.pad(0);
-    }
-
-}
-
-has Writer $!writer handles<indent margin tx ty code-start-y gutter pad footnotes level>;
+has Pod::To::PDF::Lite::Writer $!writer handles<indent margin tx ty code-start-y gutter pad footnotes level>;
 method style handles<font-size leading line-height bold italic mono underline lines-before link verbatim page> { $!writer.style }
 
 method pdf {
