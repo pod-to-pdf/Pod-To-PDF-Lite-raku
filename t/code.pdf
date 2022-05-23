@@ -22,14 +22,14 @@ endobj
 endobj
 
 4 0 obj
-<< /Length 1488 >> stream
+<< /Length 1491 >> stream
 BT
   1 0 0 1 20 752 Tm
   /F1 10 Tf
   (asdf) Tj
 ET
 BT
-  1 0 0 1 30 733.3 Tm
+  1 0 0 1 30 714.6 Tm
   /F2 8.5 Tf
   (indented) Tj
 ET
@@ -38,16 +38,16 @@ q
   0 G
   /GS1 gs
   /GS2 gs
-  25 728.3 572 15 re
+  25 709.6 572 33.7 re
   B
 Q
 BT
-  1 0 0 1 20 711.3 Tm
+  1 0 0 1 20 692.6 Tm
   /F1 10 Tf
   (asdf) Tj
 ET
 BT
-  1 0 0 1 30 692.6 Tm
+  1 0 0 1 30 655.2 Tm
   /F2 8.5 Tf
   (indented) Tj
   9.35 TL
@@ -61,16 +61,16 @@ q
   0 G
   /GS1 gs
   /GS2 gs
-  25 668.9 572 33.7 re
+  25 631.5 572 52.4 re
   B
 Q
 BT
-  1 0 0 1 20 651.9 Tm
+  1 0 0 1 20 614.5 Tm
   /F1 10 Tf
   (asdf) Tj
 ET
 BT
-  1 0 0 1 30 633.2 Tm
+  1 0 0 1 30 577.1 Tm
   /F2 8.5 Tf
   (indented) Tj
   T*
@@ -93,16 +93,16 @@ q
   0 G
   /GS1 gs
   /GS2 gs
-  25 562.75 572 80.45 re
+  25 506.65 572 99.15 re
   B
 Q
 BT
-  1 0 0 1 20 545.75 Tm
+  1 0 0 1 20 489.65 Tm
   /F1 10 Tf
   (asdf) Tj
 ET
 BT
-  1 0 0 1 30 527.05 Tm
+  1 0 0 1 30 452.25 Tm
   /F2 8.5 Tf
   (Abbreviated) Tj
 ET
@@ -111,16 +111,16 @@ q
   0 G
   /GS1 gs
   /GS2 gs
-  25 522.05 572 15 re
+  25 447.25 572 33.7 re
   B
 Q
 BT
-  1 0 0 1 20 505.05 Tm
+  1 0 0 1 20 430.25 Tm
   /F1 10 Tf
   (asdf) Tj
 ET
 BT
-  1 0 0 1 30 486.35 Tm
+  1 0 0 1 30 392.85 Tm
   /F2 8.5 Tf
   (Paragraph) Tj
   T*
@@ -131,16 +131,16 @@ q
   0 G
   /GS1 gs
   /GS2 gs
-  25 472 572 24.35 re
+  25 378.5 572 43.05 re
   B
 Q
 BT
-  1 0 0 1 20 455 Tm
+  1 0 0 1 20 361.5 Tm
   /F1 10 Tf
   (asdf) Tj
 ET
 BT
-  1 0 0 1 30 436.3 Tm
+  1 0 0 1 30 324.1 Tm
   /F2 8.5 Tf
   (Delimited) Tj
   T*
@@ -151,23 +151,23 @@ q
   0 G
   /GS1 gs
   /GS2 gs
-  25 421.95 572 24.35 re
+  25 309.75 572 43.05 re
   B
 Q
 BT
-  1 0 0 1 20 404.95 Tm
+  1 0 0 1 20 292.75 Tm
   /F1 10 Tf
   (asdf) Tj
 ET
 BT
-  1 0 0 1 30 386.25 Tm
+  1 0 0 1 30 255.35 Tm
   /F3 8.5 Tf
   (Formatted) Tj
 ET
 BT
-  1 0 0 1 30 386.25 Tm
+  1 0 0 1 30 236.65 Tm
   /F2 8.5 Tf
-  [ -5400 ] TJ
+  [  ] TJ
   T*
   (code) Tj
 ET
@@ -176,7 +176,7 @@ q
   0 G
   /GS1 gs
   /GS2 gs
-  25 371.9 572 24.35 re
+  25 222.3 572 61.75 re
   B
 Q
 endstream
@@ -224,13 +224,13 @@ xref
 0000000076 00000 n 
 0000000136 00000 n 
 0000000344 00000 n 
-0000001885 00000 n 
-0000001932 00000 n 
-0000001980 00000 n 
-0000002088 00000 n 
-0000002192 00000 n 
+0000001888 00000 n 
+0000001935 00000 n 
+0000001983 00000 n 
+0000002091 00000 n 
+0000002195 00000 n 
 trailer
 << /ID [ (t/code.t        ) (t/code.t        ) ] /Root 1 0 R /Size 10 >>
 startxref
-2301
+2304
 %%EOF

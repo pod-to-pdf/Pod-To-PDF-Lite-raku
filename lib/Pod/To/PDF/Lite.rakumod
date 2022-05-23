@@ -10,21 +10,44 @@ subset Level of Int:D where 0..6;
 my constant Gutter = 1;
 
 has PDF::Lite $.pdf .= new;
-has PDF::Lite::Page $!page;
-has PDF::Content $!gfx;
-has UInt $!indent = 0;
-has Pod::To::PDF::Lite::Style $.style handles<font-size leading line-height bold italic mono underline lines-before link verbatim> .= new;
-has $.margin = 20;
-has $!gutter = Gutter;
-has $!tx = $!margin; # text-flow x
-has $!ty; # text-flow y
-has UInt $!pad = 0;
-has @!footnotes;
 has Str %!metadata;
-has UInt:D $!level = 1;
 has %.replace;
-has Numeric $!code-start-y;
 has PDF::Content::FontObj %.font-map;
+
+class Writer is rw {
+    has PDF::Lite::Page $.page;
+    has PDF::Content $.gfx;
+    has Pod::To::PDF::Lite::Style $.style .= new;
+    has UInt:D $.level = 1;
+    has $.gutter = Gutter;
+    has UInt $!pad = 0;
+    has UInt $.indent = 0;
+    has $.margin = 20;
+    has $.tx = $!margin; # text-flow x
+    has $.ty; # text-flow y
+    has Numeric $.code-start-y;
+    has @.footnotes;
+
+    method new-line {
+        $!tx = $!margin;
+        $!ty -= $!style.line-height;
+    }
+    multi method pad(&codez) { $.pad; &codez(); $.pad}
+    multi method pad($!pad = 2) {$!pad}
+    method new-page($pdf) {
+        $.gutter = Gutter;
+        $!page = $pdf.add-page;
+        $!gfx = $!page.gfx;
+        $.tx = $.margin;
+        $.ty = $!page.height - 2 * $.margin;
+        # suppress whitespace before significant content
+        $.pad(0);
+    }
+
+}
+
+has Writer $!writer handles<indent margin tx ty code-start-y gutter pad footnotes level>;
+method style handles<font-size leading line-height bold italic mono underline lines-before link verbatim page> { $!writer.style }
 
 method pdf {
     $!pdf;
@@ -58,7 +81,8 @@ method !preload-fonts(@fonts) {
     }
 }
 
-submethod TWEAK(Str :$lang = 'en', :$pod, :%metadata, :@fonts) {
+submethod TWEAK(Str :$lang = 'en', :$pod, :%metadata, :@fonts, |c) {
+    $!writer .= new: |c;
     self!init-pdf(:$lang);
     self!preload-fonts(@fonts)
         if @fonts;
@@ -127,7 +151,7 @@ method !table-row(@row, @widths, Bool :$header) {
         # simple fixed column widths, for now
         my $tab = self!indent;
         my $row-height = 0;
-        my $height = $!ty - $!margin;
+        my $height = $.ty - $.margin;
         my $head-space = $.line-height - $.font-size;
 
         for ^cols {
@@ -138,10 +162,10 @@ method !table-row(@row, @widths, Bool :$header) {
                     $tb .= clone: :$width, :$height;
                 }
 
-                self!gfx.print: $tb, :position[$tab, $!ty];
+                $.gfx.print: $tb, :position[$tab, $.ty];
                 if $header {
                     # draw underline
-                    my $y = $!ty + $tb.underline-position - $head-space;
+                    my $y = $.ty + $tb.underline-position - $head-space;
                     self!draw-line: $tab, $y, $tab + $width;
                 }
                 given $tb.content-height {
@@ -161,8 +185,8 @@ method !table-row(@row, @widths, Bool :$header) {
             }
         }
         else {
-            $!ty -= $row-height + vpad;
-            $!ty -= $head-space if $header;
+            $.ty -= $row-height + vpad;
+            $.ty -= $head-space if $header;
         }
     }
 }
@@ -176,7 +200,7 @@ method !table-cell($pod) {
 # prepare a table as a grid of text boxes. compute column widths
 method !build-table($pod, @table) {
     my $x0 = self!indent;
-    my \total-width = self!gfx.canvas.width - $x0 - $!margin;
+    my \total-width = $.gfx.canvas.width - $x0 - $.margin;
     @table = ();
 
     self!style: :bold, :lines-before(3), {
@@ -234,19 +258,19 @@ multi method pod2pdf(Pod::Block::Named $pod) {
                 }
             }
             when  'TITLE'|'SUBTITLE' {
-                temp $!level = $_ eq 'TITLE' ?? 0 !! 2;
+                temp $!writer.level = $_ eq 'TITLE' ?? 0 !! 2;
                 self.metadata(.lc) ||= $.pod2text-inline($pod.contents);
                 self!heading($pod.contents, :pad(1));
             }
 
             default {
                 my $name = $_;
-                temp $!level += 1;
+                temp $!writer.level += 1;
                 if $name eq $name.uc {
                     if $name ~~ 'VERSION'|'NAME'|'AUTHOR' {
                         self.metadata(.lc) ||= $.pod2text-inline($pod.contents);
                     }
-                    $!level = 2;
+                    $.level = 2;
                     $name = .tclc;
                 }
                 $.pod2pdf($pod.contents);
@@ -263,7 +287,7 @@ multi method pod2pdf(Pod::Block::Code $pod) {
 
 multi method pod2pdf(Pod::Heading $pod) {
     $.pad: {
-        $!level = min($pod.level, 6);
+        $.level = min($pod.level, 6);
         self!heading: $pod.contents;
     }
 }
@@ -322,15 +346,15 @@ multi method pod2pdf(Pod::FormattingCode $pod) {
             }
         }
         when 'N' {
-            my $ind = '[' ~ @!footnotes+1 ~ ']';
+            my $ind = '[' ~ @.footnotes+1 ~ ']';
             self!style: :link, {  $.pod2pdf($ind); }
             do {
                 # pre-compute footnote size
-                temp $!style .= new;
-                temp $!tx = $!margin;
-                temp $!ty = $!page.height;
+                temp $!writer.style .= new;
+                temp $!writer.tx = $.margin;
+                temp $!writer.ty = $.page.height;
                 my $draft-footnote = $ind ~ $.pod2text-inline($pod.contents);
-                $!gutter += self!text-box($draft-footnote).lines;
+                $.gutter += self!text-box($draft-footnote).lines;
             }
         }
         when 'U' {
@@ -391,8 +415,8 @@ multi method pod2pdf(Pod::Item $pod) {
             my $bp = BulletPoints[$list-level - 1];
             $.print: $bp;
 
-            # slightly iffy $!ty fixup
-            $!ty += 2 * $.line-height;
+            # slightly iffy $.ty fixup
+            $.ty += 2 * $.line-height;
 
             self!style: :indent, {
                 $.pod2pdf($pod.contents);
@@ -518,28 +542,26 @@ multi method pod2pdf($pod) {
 }
 
 multi method say {
-    $!tx = $!margin;
-    $!ty -= $.line-height;
+    $!writer.new-line;
 }
 multi method say(Str $text, |c) {
     @.print($text, :nl, |c);
 }
 
-method font { $!style.font: :%!font-map }
+method font { $.style.font: :%!font-map }
 
-multi method pad(&codez) { $.pad; &codez(); $.pad}
-multi method pad($!pad = 2) { }
 method !text-box(
     Str $text,
-    :$width = self!gfx.canvas.width - self!indent - $!margin,
+    :$width = $.gfx.canvas.width - self!indent - $.margin,
     :$height = self!height-remaining,
     |c) {
-    PDF::Content::Text::Box.new: :$text, :indent($!tx - $!margin), :$.leading, :$.font, :$.font-size, :$width, :$height, :$.verbatim, |c;
+    my $indent = $.tx - $.margin;
+    PDF::Content::Text::Box.new: :$text, :$indent, :$.leading, :$.font, :$.font-size, :$width, :$height, :$.verbatim, |c;
 }
 
 method !pad-here {
-    $.say for ^$!pad;
-    $!pad = 0;
+    $.say for ^$.pad;
+    $.pad(0);
 }
 method print(Str $text, Bool :$nl, :$reflow = True, |c) {
     self!pad-here;
@@ -547,7 +569,7 @@ method print(Str $text, Bool :$nl, :$reflow = True, |c) {
     my $w = $tb.content-width;
     my $h = $tb.content-height;
     my Pair $pos = self!text-position();
-    my $gfx = self!gfx;
+    my $gfx = $.gfx;
     if $.link {
         use PDF::Content::Color :ColorName;
         $gfx.Save;
@@ -563,41 +585,46 @@ method print(Str $text, Bool :$nl, :$reflow = True, |c) {
 
     $gfx.Restore if $.link;
 
-    # update text position ($!tx, $!ty)
+    # update text position ($.tx, $.ty)
     if $nl {
         # advance to next line
-        $!tx = $!margin;
+        $.tx = $.margin;
     }
     else {
-        $!tx = $!margin if $tb.lines > 1;
+        $.tx = $.margin if $tb.lines > 1;
         # continue this line
         with $tb.lines.pop {
             $w = .content-width - .indent;
-            $!tx += $w;
+            $.tx += $w;
         }
     }
-    $!ty -= $tb.content-height;
+    $.ty -= $tb.content-height;
 
     if $tb.overflow {
-        my $in-code-block = $!code-start-y.defined;
+        my $in-code-block = $.code-start-y.defined;
         self!new-page;
-        $!code-start-y = $!ty if $in-code-block;
+        $.code-start-y = $.ty if $in-code-block;
         self.print($tb.overflow.join, :$nl);
     }
 }
 
+method !new-page {
+    self!finish-page();
+    $!writer.new-page($!pdf);
+}
+
 method !text-position {
-    :position[self!indent, $!ty]
+    :position[self!indent, $.ty]
 }
 
 method !style(&codez, Int :$indent, Bool :$pad, |c) {
-    temp $!style .= clone: |c;
-    temp $!indent;
-    $!indent += $indent if $indent;
+    temp $!writer.style .= clone: |c;
+    temp $!writer.indent;
+    $.indent += $indent if $indent;
     $pad ?? $.pad(&codez) !! &codez();
 }
 
-method !heading($pod is copy, Level :$level = $!level, :$underline = $level <= 1, :$!pad = 2) {
+method !heading($pod is copy, Level :$level = $.level, :$underline = $level <= 1, :$pad = 2) {
     my constant HeadingSizes = 24, 20, 16, 13, 11.5, 10, 10;
     my $font-size = HeadingSizes[$level];
     my Bool $bold   = $level <= 4;
@@ -618,18 +645,18 @@ method !heading($pod is copy, Level :$level = $!level, :$underline = $level <= 1
 
 method !finish-code {
     my constant pad = 5;
-    with $!code-start-y -> $y0 {
+    with $.code-start-y -> $y0 {
         my $x0 = self!indent;
-        my $width = self!gfx.canvas.width - $!margin - $x0;
-        $!gfx.graphics: {
+        my $width = $.gfx.canvas.width - $.margin - $x0;
+        $.gfx.graphics: {
             .FillColor = color 0;
             .StrokeColor = color 0;
             .FillAlpha = 0.1;
             .StrokeAlpha = 0.25;
-            .Rectangle: $x0 - pad, $!ty - pad, $width + pad*2, $y0 - $!ty + pad*3;
+            .Rectangle: $x0 - pad, $.ty - pad, $width + pad*2, $y0 - $.ty + pad*3;
             .paint: :fill, :stroke;
         }
-        $!code-start-y = Nil;
+        $.code-start-y = Nil;
     }
 }
 
@@ -637,14 +664,14 @@ method !code(@contents is copy) {
     @contents.pop if @contents.tail ~~ "\n";
     my $font-size = $.font-size * .85;
 
-    self!gfx;
+    $.gfx; # vivify
 
     self!style: :mono, :indent, :$font-size, :lines-before(0), :pad, :verbatim, {
         self!pad-here;
         my @plain-text;
 
         for 0 ..^ @contents -> $i {
-            $!code-start-y //= $!ty;
+            $.code-start-y //= $.ty;
             given @contents[$i] {
                 when Str {
                     @plain-text.push: $_;
@@ -668,7 +695,7 @@ method !code(@contents is copy) {
 }
 
 method !draw-line($x0, $y0, $x1, $y1 = $y0, :$linewidth = 1) {
-    given $!gfx {
+    given $.gfx {
         .Save;
         .SetLineWidth: $linewidth;
         .MoveTo: $x0, $y0;
@@ -679,7 +706,7 @@ method !draw-line($x0, $y0, $x1, $y1 = $y0, :$linewidth = 1) {
 }
 
 method !underline(PDF::Content::Text::Box $tb, :$tab = self!indent, ) {
-    my $y = $!ty + $tb.underline-position;
+    my $y = $.ty + $tb.underline-position;
     my $linewidth = $tb.underline-thickness;
     for $tb.lines {
         my $x0 = $tab + .indent;
@@ -689,56 +716,40 @@ method !underline(PDF::Content::Text::Box $tb, :$tab = self!indent, ) {
     }
 }
 
-method !gfx {
-    if !$!gfx.defined || self!height-remaining < $.lines-before * $.line-height {
+method gfx {
+    if !$!writer.gfx.defined || self!height-remaining < $.lines-before * $.line-height {
         self!new-page;
     }
-    elsif $!tx > $!margin && $!tx > $!gfx.canvas.width - self!indent {
+    elsif $.tx > $.margin && $.tx > $!writer.gfx.canvas.width - self!indent {
         self.say;
     }
-    $!gfx;
+    $!writer.gfx;
 }
-
-method !top { $!page.height - 2 * $!margin; }
-method !bottom { $!margin + ($!gutter-2) * $.line-height; }
 method !height-remaining {
-    $!ty - $!margin - $!gutter * $.line-height;
+    $.ty - $.margin - $.gutter * $.line-height;
 }
-
-method !lines-remaining {
-    (self!height-remaining / $.line-height + 0.01).Int;
-}
+method !top { $.page.height - 2 * $.margin; }
+method !bottom { $.margin + ($.gutter-2) * $.line-height; }
 
 method !finish-page {
     self!finish-code
-        if $!code-start-y;
-    if @!footnotes {
-        temp $!style .= new: :lines-before(0); # avoid current styling
-        $!tx = 0;
-        $!ty = self!bottom;
-        $!gutter = 0;
-        self!draw-line($!margin, $!ty, $!gfx.canvas.width - 2*$!margin, $!ty);
-        while @!footnotes {
+        if $.code-start-y;
+    if @.footnotes {
+        temp $.style .= new: :lines-before(0); # avoid current styling
+        $.tx = 0;
+        $.ty = self!bottom;
+        $.gutter = 0;
+        self!draw-line($.margin, $.ty, $.gfx.canvas.width - 2*$.margin, $.ty);
+        while @.footnotes {
             $.pad(1);
-            my $footnote = @!footnotes.shift;
+            my $footnote = @.footnotes.shift;
             self!style: :link, { self.print($footnote.shift) }; # [n]
             $.pod2pdf($footnote);
         }
     }
 }
 
-method !new-page {
-    self!finish-page();
-    $!gutter = Gutter;
-    $!page = $!pdf.add-page;
-    $!gfx = $!page.gfx;
-    $!tx = $!margin;
-    $!ty = $!page.height - 2 * $!margin;
-    # suppress whitespace before significant content
-    $!pad = 0;
-}
-
-method !indent { $!margin  +  10 * $!indent; }
+method !indent { $.margin  +  10 * $.indent; }
 
 method pod2text-inline($pod) {
     $.pod2text($pod).subst(/\s+/, ' ', :g);
