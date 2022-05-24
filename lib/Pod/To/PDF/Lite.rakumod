@@ -14,7 +14,7 @@ has PDF::Lite $.pdf .= new;
 has Str %!metadata;
 has %.replace;
 has PDF::Content::FontObj %.font-map;
-has Pod::To::PDF::Lite::Writer $!writer handles<indent margin tx ty code-start-y gutter pad footnotes level>;
+has Pod::To::PDF::Lite::Writer $!writer handles<indent margin tx ty code-start-y gutter pad padding footnotes level>;
 method style handles<font-size leading line-height bold italic mono underline lines-before link verbatim page> { $!writer.style }
 
 method pdf {
@@ -511,6 +511,7 @@ multi method pod2pdf($pod) {
 
 multi method say {
     $!writer.new-line;
+    $.padding = 0;;
 }
 multi method say(Str $text, |c) {
     @.print($text, :nl, |c);
@@ -528,8 +529,8 @@ method !text-box(
 }
 
 method !pad-here {
-    $.say for ^$.pad;
-    $.pad(0);
+    $.say for ^$.padding;
+    $.padding = 0;
 }
 method print(Str $text, Bool :$nl, :$reflow = True, |c) {
     self!pad-here;
@@ -709,7 +710,7 @@ method !finish-page {
         $.gutter = 0;
         self!draw-line($.margin, $.ty, $.gfx.canvas.width - 2*$.margin, $.ty);
         while @.footnotes {
-            $.pad(1);
+            $.padding = 1;
             my $footnote = @.footnotes.shift;
             self!style: :link, { self.print($footnote.shift) }; # [n]
             $.pod2pdf($footnote);
