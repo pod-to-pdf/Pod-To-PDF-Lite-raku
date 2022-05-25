@@ -3,7 +3,6 @@ use PDF::Lite;
 use PDF::Content;
 use PDF::Content::Color :&color;
 use PDF::Content::Text::Box;
-use Pod::To::PDF::Lite::Writer;
 use PDF::Content::FontObj;
 use File::Temp;
 
@@ -13,7 +12,7 @@ has PDF::Lite $.pdf .= new;
 has Str %!metadata;
 has %.replace;
 has PDF::Content::FontObj %.font-map;
-has Pod::To::PDF::Lite::Writer $!writer handles<indent margin tx ty code-start-y gutter pad padding footnotes level>;
+has $!writer handles<indent margin tx ty code-start-y gutter pad padding footnotes level>;
 method style handles<font-size leading line-height bold italic mono underline lines-before link verbatim page> { $!writer.style }
 
 method pdf {
@@ -49,7 +48,7 @@ method !preload-fonts(@fonts) {
 }
 
 submethod TWEAK(Str :$lang = 'en', :$pod, :%metadata, :@fonts, |c) {
-    $!writer .= new: |c;
+    $!writer = (require ::('Pod::To::PDF::Lite::Writer')).new: |c;
     self!init-pdf(:$lang);
     self!preload-fonts(@fonts)
         if @fonts;

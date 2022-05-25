@@ -23,7 +23,8 @@ method new-line {
     $!tx = $!margin;
     $!ty -= $!style.line-height;
 }
-multi method pad(&codez) { $!padding=2; &codez(); $!padding=2}
+multi method pad { $!padding=2 }
+multi method pad(&codez) { $.pad; &codez(); $.pad; }
 method new-page($pdf) {
     $.gutter = Gutter;
     $!page = $pdf.add-page;
