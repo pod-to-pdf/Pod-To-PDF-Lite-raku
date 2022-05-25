@@ -14,6 +14,8 @@ has UInt $.lines-before = 1;
 has Bool $.link;
 has PDF::Content::FontObj $.font;
 
+my Lock:D $lock .= new;
+
 method leading { 1.1 }
 method line-height {
     $.leading * $!font-size;
@@ -40,9 +42,11 @@ method clone { nextwith :font(PDF::Content::FontObj), |%_; }
 method font(:%font-map) {
     $!font //= do {
         my FontKey:D $key = self.font-key;
-        %font-map{$key} // do {
-            my Str:D $font-name = %CoreFont{$key};
-            PDF::Content::Font::CoreFont.load-font($font-name);
+        $lock.protect: {
+            %font-map{$key} //= do {
+                my Str:D $font-name = %CoreFont{$key};
+                PDF::Content::Font::CoreFont.load-font($font-name);
+            }
         }
     }
 }
