@@ -4,7 +4,6 @@ use PDF::Content;
 use PDF::Content::Color :&color;
 use PDF::Content::Text::Box;
 use Pod::To::PDF::Lite::Writer;
-use Pod::To::PDF::Lite::Style;
 use PDF::Content::FontObj;
 use File::Temp;
 
@@ -39,7 +38,7 @@ method !preload-fonts(@fonts) {
     my $loader = (require ::('PDF::Font::Loader'));
     for @fonts -> % ( Str :$file!, Bool :$bold, Bool :$italic, Bool :$mono ) {
         # font preload
-        my Pod::To::PDF::Lite::Style $style .= new: :$bold, :$italic, :$mono;
+        my $style = (require ::('Pod::To::PDF::Lite::Style')).new: :$bold, :$italic, :$mono;
         if $file.IO.e {
             %!font-map{$style.font-key} = $loader.load-font: :$file;
         }
