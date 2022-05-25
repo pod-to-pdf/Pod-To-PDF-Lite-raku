@@ -3,8 +3,8 @@ use PDF::Lite;
 use PDF::Content;
 use PDF::Content::Color :&color;
 use PDF::Content::Text::Box;
-use Pod::To::PDF::Lite::Style;
 use Pod::To::PDF::Lite::Writer;
+use Pod::To::PDF::Lite::Style;
 use PDF::Content::FontObj;
 use File::Temp;
 
@@ -281,7 +281,7 @@ method !replace(Pod::FormattingCode $pod where .type eq 'R', &continue) {
 
     my $rv := &continue($new-pod);
 
-    %!replacing{$place-holder}:delete;;
+    %!replacing{$place-holder}:delete;
     $rv;
 }
 
@@ -511,7 +511,7 @@ multi method pod2pdf($pod) {
 
 multi method say {
     $!writer.new-line;
-    $.padding = 0;;
+    $.padding = 0;
 }
 multi method say(Str $text, |c) {
     @.print($text, :nl, |c);
