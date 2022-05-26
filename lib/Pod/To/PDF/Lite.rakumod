@@ -2,7 +2,10 @@ unit class Pod::To::PDF::Lite:ver<0.0.13>;
 use PDF::Lite;
 use PDF::Content;
 use PDF::Content::FontObj;
+use PDF::Content::PageTree;
 use File::Temp;
+use Pod::To::PDF::Lite::Scheduler;
+use Pod::To::PDF::Lite::Style;
 use Pod::To::PDF::Lite::Writer;
 
 has PDF::Lite $.pdf .= new;
@@ -36,11 +39,36 @@ method !preload-fonts(@fonts) {
     }
 }
 
-method read($pod, |c) {
+#| Non-threading ('server') rendering mode
+multi method read($pod, :$server! where .so, |c) {
     my $pages = $!pdf.Pages;
     my Pod::To::PDF::Lite::Writer $writer .= new: :%!font-map, :$pages, |c;
     $writer.write($pod);
     self.metadata(.key) = .value for $writer.metadata.pairs;
+}
+
+#| Threaded rendering mode
+multi method read(@pod, |c) {
+    my Lock $lock .= new;
+    my Promise @jobs;
+    my PDF::Content::PageTree @page-sets;
+
+    for Pod::To::PDF::Lite::Scheduler.divvy(@pod) -> $pod {
+        my PDF::Content::PageTree:D $pages .= pages-fragment;
+        my Pod::To::PDF::Lite::Writer $writer .= new: :%!font-map, :$pages, |c;
+        my Promise $job = start { $writer.write($pod); }
+        $job.then: {
+            if $writer.metadata {
+                $lock.protect: {
+                    self.metadata(.key) = .value for $writer.metadata.pairs;
+                }
+            }
+        }
+        @page-sets.push: $pages;
+        @jobs.push: $job;
+    }
+    await @jobs;
+    $!pdf.add-pages($_) for @page-sets;
 }
 
 submethod TWEAK(Str :$lang = 'en', :$pod, :%metadata, :@fonts, |c) {

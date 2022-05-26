@@ -1,6 +1,8 @@
 Revision history for Pod-To-PDF-Lite
 
 {{$NEXT}}
+    - Add concurrent threaded construction of Pod sections for larger
+      Pod documents.
 
 0.0.13  2022-04-04T11:31:40+12:00
     - Add options :$width, :$height, and :@fonts.
