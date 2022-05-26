@@ -5,7 +5,6 @@ use PDF::Content::FontObj;
 use PDF::Content::PageTree;
 use File::Temp;
 use Pod::To::PDF::Lite::Scheduler;
-use Pod::To::PDF::Lite::Style;
 use Pod::To::PDF::Lite::Writer;
 
 has PDF::Lite $.pdf .= new;
