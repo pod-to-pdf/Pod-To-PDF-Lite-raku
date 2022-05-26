@@ -1,8 +1,12 @@
 Revision history for Pod-To-PDF-Lite
 
 {{$NEXT}}
-    - Add concurrent threaded construction of Pod sections for larger
-      Pod documents.
+
+0.0.14  2022-05-26T16:13:07+12:00
+    - Add concurrent threaded construction of Pod documents. This is
+      most effective for larger documents with multiple sections, that
+      begin with `=head1` (these break onto a new page). Further concurrency
+      work needed in the PDF back-end to remove serialization bottlenecks.
 
 0.0.13  2022-04-04T11:31:40+12:00
     - Add options :$width, :$height, and :@fonts.

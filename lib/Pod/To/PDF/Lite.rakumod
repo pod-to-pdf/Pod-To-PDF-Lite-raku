@@ -1,4 +1,4 @@
-unit class Pod::To::PDF::Lite:ver<0.0.13>;
+unit class Pod::To::PDF::Lite:ver<0.0.14>;
 use PDF::Lite;
 use PDF::Content;
 use PDF::Content::FontObj;
@@ -39,7 +39,7 @@ method !preload-fonts(@fonts) {
     }
 }
 
-#| Non-threading ('server') rendering mode
+#| Sequential ('server') rendering mode
 multi method read($pod, :$server! where .so, |c) {
     my $pages = $!pdf.Pages;
     my Pod::To::PDF::Lite::Writer $writer .= new: :%!font-map, :$pages, |c;
@@ -47,7 +47,7 @@ multi method read($pod, :$server! where .so, |c) {
     self.metadata(.key) = .value for $writer.metadata.pairs;
 }
 
-#| Threaded rendering mode
+#| Concurrent rendering mode
 multi method read(@pod, |c) {
     my Lock $lock .= new;
     my Promise @jobs;
@@ -67,8 +67,16 @@ multi method read(@pod, |c) {
         @page-sets.push: $pages;
         @jobs.push: $job;
     }
+
     await @jobs;
-    $!pdf.add-pages($_) for @page-sets;
+
+    if +@page-sets == 1 {
+        # single sub-tree; replace page-tree root
+        $!pdf.Root.Pages = @page-sets.head;
+    }
+    else {
+        $!pdf.add-pages($_) for @page-sets;
+    }
 }
 
 submethod TWEAK(Str :$lang = 'en', :$pod, :%metadata, :@fonts, |c) {
