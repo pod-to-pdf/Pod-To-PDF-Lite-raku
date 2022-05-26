@@ -39,7 +39,6 @@ method !preload-fonts(@fonts) {
     }
 }
 
-#| Sequential ('server') rendering mode
 multi method read($pod, :$server! where .so, |c) {
     my $pages = $!pdf.Pages;
     my Pod::To::PDF::Lite::Writer $writer .= new: :%!font-map, :$pages, |c;
@@ -47,7 +46,6 @@ multi method read($pod, :$server! where .so, |c) {
     self.metadata(.key) = .value for $writer.metadata.pairs;
 }
 
-#| Concurrent rendering mode
 multi method read(@pod, |c) {
     my Lock $lock .= new;
     my Promise @jobs;

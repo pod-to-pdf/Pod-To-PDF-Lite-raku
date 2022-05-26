@@ -1,26 +1,3 @@
-### multi method read
-
-```raku
-multi method read(
-    $pod,
-    :$server! where { ... },
-    |c
-) returns Mu
-```
-
-Sequential ('server') rendering mode
-
-### multi method read
-
-```raku
-multi method read(
-    @pod,
-    |c
-) returns Mu
-```
-
-Concurrent rendering mode
-
 TITLE
 =====
 
