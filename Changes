@@ -2,6 +2,10 @@ Revision history for Pod-To-PDF-Lite
 
 {{$NEXT}}
 
+0.1.0  2022-05-28T11:26:42+12:00
+    - Use race() for concurrency; Less active threads and slightly
+      better performance.
+
 0.0.15  2022-05-27T18:02:16+12:00
     - Fixes to Pod::To::PDF::Lite::Scheduler
     - Call $!page.finish() from thread workers. This speeds
@@ -10,8 +14,7 @@ Revision history for Pod-To-PDF-Lite
 0.0.14  2022-05-26T16:18:35+12:00
     - Add concurrent threaded construction of Pod documents. This is
       most effective for larger documents with multiple sections, that
-      begin with `=head1` (these break onto a new page). Further concurrency
-      work needed in the PDF back-end to remove serialization bottlenecks.
+      begin with `=head1` (these break onto a new page).
 
 0.0.13  2022-04-04T11:31:40+12:00
     - Add options :$width, :$height, and :@fonts.

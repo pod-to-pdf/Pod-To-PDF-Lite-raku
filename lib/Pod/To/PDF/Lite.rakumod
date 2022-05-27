@@ -1,4 +1,4 @@
-unit class Pod::To::PDF::Lite:ver<0.0.15>;
+unit class Pod::To::PDF::Lite:ver<0.1.0>;
 use PDF::Lite;
 use PDF::Content;
 use PDF::Content::FontObj;
@@ -65,7 +65,7 @@ multi method read(@pod, |c) {
         $!pdf.Root.Pages = @batches.head[1];
     }
     else {
-        $!pdf.add-pages(.[1]) for @batches;
+        $!pdf.Root.add-pages(.[1]) for @batches;
     }
 }
 
