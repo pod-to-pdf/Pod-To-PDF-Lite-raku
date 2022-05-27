@@ -685,6 +685,10 @@ method !finish-page {
             $.pod2pdf($footnote);
         }
     }
+
+    # Finalize the page graphics. This will speed up
+    # PDF construction in the main thread
+    .finish with $!page;
 }
 
 method !indent { $!margin  +  10 * $.indent; }
