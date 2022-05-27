@@ -10,6 +10,7 @@ use Pod::To::PDF::Lite::Writer;
 has PDF::Lite $.pdf .= new;
 has Str %!metadata;
 has PDF::Content::FontObj %.font-map;
+has Lock:D $!lock .= new;
 
 method pdf {
     $!pdf;
@@ -38,41 +39,33 @@ method !preload-fonts(@fonts) {
     }
 }
 
-multi method read($pod, :$server! where .so, |c) {
-    my $pages = $!pdf.Pages;
+method !read-sequential($pod, PDF::Content::PageTree:D $pages, |c) is hidden-from-backtrace {
     my Pod::To::PDF::Lite::Writer $writer .= new: :%!font-map, :$pages, |c;
     $writer.write($pod);
     self.metadata(.key) = .value for $writer.metadata.pairs;
 }
 
-multi method read(@pod, |c) {
-    my Lock $lock .= new;
-    my Promise @jobs;
-    my PDF::Content::PageTree @page-sets;
+# 'sequential' single-threaded processing mode
+multi method read($pod, :sequential($)! where .so, |c) {
+    self!read-sequential: $pod, $!pdf.Pages, |c;
+}
 
-    for Pod::To::PDF::Lite::Scheduler.divvy(@pod) -> $pod {
-        my PDF::Content::PageTree:D $pages .= pages-fragment;
-        my Pod::To::PDF::Lite::Writer $writer .= new: :%!font-map, :$pages, |c;
-        my Promise $job = start { $writer.write($pod); }
-        $job.then: {
-            if $writer.metadata {
-                $lock.protect: {
-                    self.metadata(.key) = .value for $writer.metadata.pairs;
-                }
-            }
-        }
-        @page-sets.push: $pages;
-        @jobs.push: $job;
+# multi-threaded processing mode
+multi method read(@pod, |c) {
+    my List @batches = Pod::To::PDF::Lite::Scheduler.divvy(@pod).map: -> $pod {
+        ($pod, PDF::Content::PageTree.pages-fragment);
     }
 
-    await @jobs;
+    @batches.race(:batch(1)).map: {
+        self!read-sequential: |$_, |c;
+    }
 
-    if +@page-sets == 1 {
+    if +@batches == 1 {
         # single sub-tree; replace page-tree root
-        $!pdf.Root.Pages = @page-sets.head;
+        $!pdf.Root.Pages = @batches.head[1];
     }
     else {
-        $!pdf.add-pages($_) for @page-sets;
+        $!pdf.add-pages(.[1]) for @batches;
     }
 }
 
@@ -119,9 +112,7 @@ method !build-metadata-title {
     @title.join: ' ';
 }
 
-method !set-metadata(PodMetaType $key, $value) {
-
-    %!metadata{$key} = $value;
+method !set-pdf-info(PodMetaType $key, $value) {
 
     my Str:D $pdf-key = do given $key {
         when 'title'|'version'|'name' { 'Title' }
@@ -137,11 +128,14 @@ method !set-metadata(PodMetaType $key, $value) {
     $info{$pdf-key} = $pdf-value;
 }
 
-multi method metadata(PodMetaType $t) is rw {
+method metadata(PodMetaType $t) is rw {
     Proxy.new(
-        FETCH => { %!metadata{$t} },
+        FETCH => { $!lock.protect: { %!metadata{$t} } },
         STORE => -> $, Str:D() $v {
-            self!set-metadata($t, $v);
+            $!lock.protect: {
+                %!metadata{$t} = $v;
+                self!set-pdf-info($t, $v);
+            }
         }
     )
 }
