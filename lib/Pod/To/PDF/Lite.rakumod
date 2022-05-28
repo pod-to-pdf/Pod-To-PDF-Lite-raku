@@ -56,16 +56,15 @@ multi method read(@pod, |c) {
         ($pod, PDF::Content::PageTree.pages-fragment);
     }
 
-    @batches.race(:batch(1)).map: {
-        self!read-sequential: |$_, |c;
-    }
-
     if +@batches == 1 {
-        # single sub-tree; replace page-tree root
-        $!pdf.Root.Pages = @batches.head[1];
+        self!read-sequential: @pod, $!pdf.Pages, |c;
     }
     else {
-        $!pdf.Root.add-pages(.[1]) for @batches;
+        @batches.race(:batch(1)).map: {
+            self!read-sequential: |$_, |c;
+        }
+
+        $!pdf.add-pages(.[1]) for @batches;
     }
 }
 
@@ -173,9 +172,9 @@ From Raku:
     sub pod2pdf; # See below
 
 From command line:
-    =begin code :lang<shell>
-    $ raku --doc=PDF::Lite lib/to/class.rakumod | xargs evince
-    =end code
+=for code :lang<shell>
+$ raku --doc=PDF::Lite lib/to/class.rakumod | xargs evince
+
 From Raku code, the C<pod2pdf> function returns a L<PDF::Lite> object which can
 be further manipulated, or saved to a PDF file.
 
