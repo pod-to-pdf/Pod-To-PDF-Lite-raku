@@ -9,7 +9,7 @@ use PDF::Content::FontObj;
 use PDF::Content::Page;
 use PDF::Content::PageTree;
 use PDF::Content::Text::Box;
-use Pod::To::PDF::Lite::Style;
+##use Pod::To::PDF::Lite::Style; # Raku <= 2022.04 issues
 
 my constant Gutter = 1;
 subset Level of Int:D where 0..6;
@@ -20,7 +20,7 @@ has Str %.metadata; # output metadata
 has PDF::Content::PageTree:D $.pages is required;
 has PDF::Content::Page $.page;
 has PDF::Content $.gfx;
-has Pod::To::PDF::Lite::Style $.style handles<font-size leading line-height bold italic mono underline lines-before link verbatim> .= new;
+has $.style handles<font-size leading line-height bold italic mono underline lines-before link verbatim> = (require ::('Pod::To::PDF::Lite::Style')).new;
 has UInt:D $.level = 1;
 has $!gutter = Gutter;
 has UInt $!padding = 0;
