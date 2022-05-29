@@ -1,6 +1,7 @@
 Revision history for Pod-To-PDF-Lite
 
 {{$NEXT}}
+    - Fix pagination of level-1 headers
 
 0.1.1  2022-05-29T07:19:58+12:00
     - Work around symbol merge issues in recent Rakudo point releases

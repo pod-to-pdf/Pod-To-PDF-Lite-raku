@@ -14,21 +14,27 @@ multi-page chunks for concurrent processing
 has $.complexity = 8000; # typically gives us chunks of around 10-15 pages
 has $!idx = 0;
 has Iterator $.pod is required;
+has Pod::Heading $!next;
 
 multi sub pod-cost(Str:D $pod) { $pod.chars }
 multi sub pod-cost(@pod) { @pod.map({pod-cost($_)}).sum }
 multi sub pod-cost(Pod::Block $pod) { 20 + pod-cost($pod.contents) }
 
 method pull-one {
-    my @chunk;
+    my @chunk = $_ with $!next;
     my $cost = 0;
+    $!next = Nil;
+
     while (my $elem := $!pod.pull-one) !=:= IterationEnd {
-        @chunk.push: $elem;
         # break at next page boundary, after reaching thresehold cost
         $cost += pod-cost($elem);
-        last if $cost >= $!complexity
+        if $cost >= $!complexity
             && $elem ~~ Pod::Heading:D
-            && $elem.level <= 1;
+            && $elem.level <= 1 {
+               $!next = $elem;
+               last;
+        }
+        @chunk.push: $elem;
     }
     @chunk ?? @chunk !! IterationEnd;
 }
