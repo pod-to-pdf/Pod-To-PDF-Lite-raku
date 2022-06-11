@@ -1,6 +1,8 @@
 Revision history for Pod-To-PDF-Lite
 
 {{$NEXT}}
+
+0.1.3  2022-06-11T14:57:52+12:00
     - Factor out concurrent processing to sub-class Pod::To::PDF::Lite::Async
       rendering mode. Keep the main module synchronous.
 

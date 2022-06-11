@@ -1,4 +1,4 @@
-unit class Pod::To::PDF::Lite:ver<0.1.2>;
+unit class Pod::To::PDF::Lite:ver<0.1.3>;
 use PDF::Lite;
 use PDF::Content;
 use PDF::Content::FontObj;
@@ -216,6 +216,16 @@ my @fonts = (
 PDF::Lite $pdf = pod2pdf($=pod, :@fonts);
 $pdf.save-as: "pod.pdf";
 =end code
+
+=head2 Asynchronous Rendering (Experimental)
+
+    $ raku --doc=PDF::Lite::Async lib/to/class.rakumod | xargs evince
+
+Also included in this module is class `Pod::To::PDF::Lite::Async`. This extends the `Pod::To::PDF::Lite` Pod renderer, adding the
+ability to render larger documents concurrently.
+
+For this mode to be useful, the document is likely to be of the order of dozens of pages
+and include multiple level-1 headers (for batching purposes).
 
 =head2 Restrictions
 
