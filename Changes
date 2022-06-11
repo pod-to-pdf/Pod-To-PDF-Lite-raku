@@ -1,6 +1,8 @@
 Revision history for Pod-To-PDF-Lite
 
 {{$NEXT}}
+    - Factor out concurrent processing to sub-class Pod::To::PDF::Lite::Async
+      rendering mode. Keep the main module synchronous.
 
 0.1.2  2022-05-29T16:51:18+12:00
     - Fix pagination of level-1 headers

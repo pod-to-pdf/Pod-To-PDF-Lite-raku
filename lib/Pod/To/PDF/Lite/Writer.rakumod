@@ -18,7 +18,7 @@ has PDF::Content::FontObj %.font-map is required;
 has %.replace; # input replace patterns
 has Str %.metadata; # output metadata
 has PDF::Content::PageTree:D $.pages is required;
-has PDF::Content::Page $.page;
+has PDF::Content::Page $!page;
 has PDF::Content $.gfx;
 has $.style handles<font-size leading line-height bold italic mono underline lines-before link verbatim> = (require ::('Pod::To::PDF::Lite::Style')).new;
 has UInt:D $.level = 1;
@@ -288,7 +288,7 @@ multi method pod2pdf(Pod::FormattingCode $pod) {
                 # pre-compute footnote size
                 temp $!style .= new;
                 temp $!tx = $!margin;
-                temp $!ty = $.page.height;
+                temp $!ty = $!page.height;
                 my $draft-footnote = $ind ~ $.pod2text-inline($pod.contents);
                 $!gutter += self!text-box($draft-footnote).lines;
             }
@@ -666,7 +666,7 @@ method gfx {
 method !height-remaining {
     $!ty - $!margin - $!gutter * $.line-height;
 }
-method !top { $.page.height - 2 * $!margin; }
+method !top { $!page.height - 2 * $!margin; }
 method !bottom { $!margin + ($!gutter-2) * $.line-height; }
 
 method !finish-page {

@@ -2,11 +2,12 @@ unit class Pod::To::PDF::Lite:ver<0.1.2>;
 use PDF::Lite;
 use PDF::Content;
 use PDF::Content::FontObj;
-use PDF::Content::PageTree;
 use File::Temp;
-use Pod::To::PDF::Lite::Scheduler;
+
 use Pod::To::PDF::Lite::Style;
 use Pod::To::PDF::Lite::Writer;
+
+subset PodMetaType of Str where 'title'|'subtitle'|'author'|'name'|'version';
 
 has PDF::Lite $.pdf .= new;
 has Str %!metadata;
@@ -40,33 +41,15 @@ method !preload-fonts(@fonts) {
     }
 }
 
-method !read-sequential($pod, PDF::Content::PageTree:D $pages, |c) is hidden-from-backtrace {
+method read-batch($pod, PDF::Content::PageTree:D $pages, |c) is hidden-from-backtrace {
     my Pod::To::PDF::Lite::Writer $writer .= new: :%!font-map, :$pages, |c;
     $writer.write($pod);
     self.metadata(.key) = .value for $writer.metadata.pairs;
 }
 
 # 'sequential' single-threaded processing mode
-multi method read($pod, :sequential($)! where .so, |c) {
-    self!read-sequential: $pod, $!pdf.Pages, |c;
-}
-
-# multi-threaded processing mode
-multi method read(@pod, |c) {
-    my List @batches = Pod::To::PDF::Lite::Scheduler.divvy(@pod).map: -> $pod {
-        ($pod, PDF::Content::PageTree.pages-fragment);
-    }
-
-    if +@batches == 1 {
-        self!read-sequential: @pod, $!pdf.Pages, |c;
-    }
-    else {
-        @batches.race(:batch(1)).map: {
-            self!read-sequential: |$_, |c;
-        }
-
-        $!pdf.add-pages(.[1]) for @batches;
-    }
+method read($pod, |c) {
+    self.read-batch: $pod, $!pdf.Pages, |c;
 }
 
 submethod TWEAK(Str :$lang = 'en', :$pod, :%metadata, :@fonts, |c) {
@@ -100,8 +83,6 @@ our sub pod2pdf($pod, :$class = $?CLASS, |c) is export {
     $class.new(|c, :$pod).pdf;
 }
 
-subset PodMetaType of Str where 'title'|'subtitle'|'author'|'name'|'version';
-
 method !build-metadata-title {
     my @title = $_ with %!metadata<title>;
     with %!metadata<name> {
@@ -130,12 +111,10 @@ method !set-pdf-info(PodMetaType $key, $value) {
 
 method metadata(PodMetaType $t) is rw {
     Proxy.new(
-        FETCH => { $!lock.protect: { %!metadata{$t} } },
+        FETCH => { %!metadata{$t} },
         STORE => -> $, Str:D() $v {
-            $!lock.protect: {
-                %!metadata{$t} = $v;
-                self!set-pdf-info($t, $v);
-            }
+            %!metadata{$t} = $v;
+            self!set-pdf-info($t, $v);
         }
     )
 }
@@ -248,6 +227,7 @@ L<PDF::Lite> minimalism, including:
 
 =head2 See Also
 
+=item L<Pod::To::PDF::Lite::Async> - Multi-threaded rendering mode (experimental)
 =item L<Pod::To::PDF> - PDF rendering via L<Cairo>
 
 =end pod

@@ -89,6 +89,12 @@ By default, Pod::To::PDF::Lite uses core fonts. This option can be used to prelo
 
 Note: [PDF::Font::Loader](PDF::Font::Loader) must be installed, to use this option.
 
+**`Bool :$threads`** (experimental)
+
+Process the PDF in concurrent multi-threaded mode. This typically runs several times faster
+for larger documents on a hyper-threaded quad-core. Note that the document is batched
+for writing on page breaks and should thus have regular level-1 headers. 
+
 ```raku
 use PDF::Lite;
 use Pod::To::PDF::Lite;
@@ -105,6 +111,17 @@ my @fonts = (
 PDF::Lite $pdf = pod2pdf($=pod, :@fonts);
 $pdf.save-as: "pod.pdf";
 ```
+
+Asynchronous Rendering (Experimental)
+---------------------------
+
+    $ raku --doc=PDF::Lite::Async lib/to/class.rakumod | xargs evince
+
+This module currently includes L<Pod::To::PDF::Lite::Async>. This extends L<Pod::To::PDF::Lite> Pod renderer, adding the
+ability to render larger documents concurrently.
+
+For this mode to be useful, the document is likely to be of the order of dozens of pages
+and include multiple level-1 headers (for batching purposes).
 
 Restrictions
 ------------

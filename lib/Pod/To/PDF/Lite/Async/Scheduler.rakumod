@@ -1,5 +1,5 @@
 #| divides a larger Pod document into sections for concurrent processing
-unit class Pod::To::PDF::Lite::Scheduler
+unit class Pod::To::PDF::Lite::Async::Scheduler
    does Iterable does Iterator;
 
 =begin pod
@@ -7,7 +7,8 @@ unit class Pod::To::PDF::Lite::Scheduler
 =head2 Description
 
 This iterator class breaks a larger Pod document into approximately equal
-multi-page chunks for concurrent processing
+multi-page batches for concurrent processing. Each batch begins on a
+level-1 header (`=head1`), which begins a new page.
 
 =end pod
 
