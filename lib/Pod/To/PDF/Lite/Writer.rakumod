@@ -11,7 +11,7 @@ use PDF::Content::PageTree;
 use PDF::Content::Text::Box;
 ##use Pod::To::PDF::Lite::Style; # Raku <= 2022.04 issues
 
-my constant Gutter = 1;
+my constant Gutter = 3;
 subset Level of Int:D where 0..6;
 
 has PDF::Content::FontObj %.font-map is required;
@@ -24,7 +24,7 @@ has $.style handles<font-size leading line-height bold italic mono underline lin
 has UInt:D $.level = 1;
 has $!gutter = Gutter;
 has UInt $!padding = 0;
-has UInt $.indent = 0;
+has UInt $!indent = 0;
 has $.margin = 20;
 has $!tx = $!margin; # text-flow x
 has $!ty; # text-flow y
@@ -38,6 +38,12 @@ method write($pod) {
 
 multi method pad { $!padding=2 }
 multi method pad(&codez) { $.pad; &codez(); $.pad; }
+
+method !new-page {
+    self!finish-page();
+    self!add-page();
+}
+
 method !add-page {
     $!gutter = Gutter;
     $!page = $!pages.add-page;
@@ -46,6 +52,29 @@ method !add-page {
     $!ty = $!page.height - 2 * $!margin;
     # suppress whitespace before significant content
     $!padding = 0;
+}
+
+method !finish-page {
+    self!finish-code
+        if $!code-start-y;
+    if @!footnotes {
+        temp $.style .= new: :lines-before(0); # avoid current styling
+        $!tx = 0;
+        $!ty = self!bottom;
+        $!gutter = 0;
+        self!draw-line($!margin, $!ty, $.gfx.canvas.width - 2*$!margin, $!ty);
+        while @!footnotes {
+            $!padding = 1;
+            my $footnote = @!footnotes.shift;
+            self!style: :link, { self.print($footnote.shift) }; # [n]
+            $!tx += 2;
+            $.pod2pdf($footnote);
+        }
+    }
+
+    # Finalize the page graphics. This will speed up
+    # PDF construction in the main thread
+    .finish with $!page;
 }
 
 my constant vpad = 2;
@@ -78,6 +107,7 @@ sub fit-widths($width is copy, @widths) {
                 for @widths;
         }
     }
+    @widths;
 }
 
 method !table-row(@row, @widths, Bool :$header) {
@@ -150,8 +180,7 @@ method !build-table($pod, @table) {
 
     my $cols = @table.max: *.Int;
     my @widths = (^$cols).map: -> $col { @table.map({.[$col].?width // 0}).max };
-   fit-widths(total-width - hpad * (@widths-1), @widths);
-   @widths;
+    fit-widths(total-width - hpad * (@widths-1), @widths);
 }
 
 multi method pod2pdf(Pod::Block::Table $pod) {
@@ -164,9 +193,9 @@ multi method pod2pdf(Pod::Block::Table $pod) {
             }
         }
         self!pad-here;
-        my PDF::Content::Text::Box @header = @table.shift.List;
-        if @header {
-            self!table-row: @header, @widths, :header;
+        my PDF::Content::Text::Box @headers = @table.shift.List;
+        if @headers {
+            self!table-row: @headers, @widths, :header;
         }
 
         if @table {
@@ -196,7 +225,7 @@ multi method pod2pdf(Pod::Block::Named $pod) {
             when  'TITLE'|'SUBTITLE' {
                 temp $!level = $_ eq 'TITLE' ?? 0 !! 2;
                 %!metadata{.lc} ||= $.pod2text-inline($pod.contents);
-                self!heading($pod.contents, :pad(1));
+                self!heading($pod.contents, :padding(1));
             }
 
             default {
@@ -284,6 +313,8 @@ multi method pod2pdf(Pod::FormattingCode $pod) {
         when 'N' {
             my $ind = '[' ~ @!footnotes+1 ~ ']';
             self!style: :link, {  $.pod2pdf($ind); }
+            my  @contents = $ind, $pod.contents.Slip;
+            @!footnotes.push: @contents;
             do {
                 # pre-compute footnote size
                 temp $!style .= new;
@@ -546,11 +577,6 @@ method print(Str $text, Bool :$nl, :$reflow = True, |c) {
     }
 }
 
-method !new-page {
-    self!finish-page();
-    self!add-page();
-}
-
 method !text-position {
     :position[self!indent, $!ty]
 }
@@ -562,7 +588,7 @@ method !style(&codez, Int :$indent, Bool :$pad, |c) {
     $pad ?? $.pad(&codez) !! &codez();
 }
 
-method !heading($pod is copy, Level :$level = $.level, :$underline = $level <= 1, :$pad = 2) {
+method !heading($pod is copy, Level :$level = $.level, :$underline = $level <= 1, :$!padding = 2) {
     my constant HeadingSizes = 24, 20, 16, 13, 11.5, 10, 10;
     my $font-size = HeadingSizes[$level];
     my Bool $bold   = $level <= 4;
@@ -587,8 +613,9 @@ method !finish-code {
         my $x0 = self!indent;
         my $width = $.gfx.canvas.width - $!margin - $x0;
         $.gfx.graphics: {
-            .FillColor = color 0;
-            .StrokeColor = color 0;
+            my constant Black = 0;
+            .FillColor = color Black;
+            .StrokeColor = color Black;
             .FillAlpha = 0.1;
             .StrokeAlpha = 0.25;
             .Rectangle: $x0 - pad, $!ty - pad, $width + pad*2, $y0 - $!ty + pad*3;
@@ -669,29 +696,7 @@ method !height-remaining {
 method !top { $!page.height - 2 * $!margin; }
 method !bottom { $!margin + ($!gutter-2) * $.line-height; }
 
-method !finish-page {
-    self!finish-code
-        if $!code-start-y;
-    if @!footnotes {
-        temp $.style .= new: :lines-before(0); # avoid current styling
-        $!tx = 0;
-        $!ty = self!bottom;
-        $!gutter = 0;
-        self!draw-line($!margin, $!ty, $.gfx.canvas.width - 2*$!margin, $!ty);
-        while @!footnotes {
-            $!padding = 1;
-            my $footnote = @!footnotes.shift;
-            self!style: :link, { self.print($footnote.shift) }; # [n]
-            $.pod2pdf($footnote);
-        }
-    }
-
-    # Finalize the page graphics. This will speed up
-    # PDF construction in the main thread
-    .finish with $!page;
-}
-
-method !indent { $!margin  +  10 * $.indent; }
+method !indent { $!margin  +  10 * $!indent; }
 
 method pod2text-inline($pod) {
     $.pod2text($pod).subst(/\s+/, ' ', :g);

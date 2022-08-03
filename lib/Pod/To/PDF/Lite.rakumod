@@ -44,7 +44,9 @@ method !preload-fonts(@fonts) {
 method read-batch($pod, PDF::Content::PageTree:D $pages, |c) is hidden-from-backtrace {
     my Pod::To::PDF::Lite::Writer $writer .= new: :%!font-map, :$pages, |c;
     $writer.write($pod);
-    self.metadata(.key) = .value for $writer.metadata.pairs;
+    $!lock.protect: {
+        self.metadata(.key) = .value for $writer.metadata.pairs;
+    }
 }
 
 # 'sequential' single-threaded processing mode
@@ -111,7 +113,7 @@ method !set-pdf-info(PodMetaType $key, $value) {
 
 method metadata(PodMetaType $t) is rw {
     Proxy.new(
-        FETCH => { %!metadata{$t} },
+        FETCH => { $!lock.protect: { %!metadata{$t} } },
         STORE => -> $, Str:D() $v {
             %!metadata{$t} = $v;
             self!set-pdf-info($t, $v);
@@ -195,7 +197,7 @@ The page size in points (there are 72 points per inch).
 =defn `UInt:D :$margin`
 The page margin in points (default 20).
 
-=defn `Hash :@fonts
+=defn `Hash :@fonts`
 By default, Pod::To::PDF::Lite uses core fonts. This option can be used to preload selected fonts.
 
 Note: L<PDF::Font::Loader> must be installed, to use this option.
