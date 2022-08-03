@@ -83,7 +83,7 @@ The page size in points (there are 72 points per inch).
 
 The page margin in points (default 20).
 
-**`Hash :@fonts**
+**`Hash :@fonts`**
 
 By default, Pod::To::PDF::Lite uses core fonts. This option can be used to preload selected fonts.
 
@@ -128,6 +128,8 @@ Restrictions
 
 See Also
 --------
+
+  * [Pod::To::PDF::Lite::Async](Pod::To::PDF::Lite::Async) - Multi-threaded rendering mode (experimental)
 
   * [Pod::To::PDF](Pod::To::PDF) - PDF rendering via [Cairo](Cairo)
 

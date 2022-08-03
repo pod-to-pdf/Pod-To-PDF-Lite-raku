@@ -550,7 +550,7 @@ method print(Str $text, Bool :$nl, :$reflow = True, |c) {
 
     $gfx.print: $tb, |$pos, :$nl;
     self!underline: $tb
-        if $.underline || $.link;
+        if $.underline;
 
     $gfx.Restore if $.link;
 
