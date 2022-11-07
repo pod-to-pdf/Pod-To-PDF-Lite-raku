@@ -206,19 +206,25 @@ be further manipulated, or saved to a PDF file.
 
 Command Line Options:
 
-=defn '--width=n'
+=define --save-as=pdf-filename
+
+File-name for the PDF output file. If not given, the
+output will be saved to a temporary file. The file-name
+is echoed to <C<stdout>.                                                    
+
+=defn --width=n
 
 Page width in points (default: 592)
 
-=defn '--height=n'
+=defn --height=n
 
 Page height in points (default: 792)
 
-=defn '--margin=n'
+=defn --margin=n
 
 Page margin in points (default: 792)
 
-=defn '--page-numbers'
+=defn --page-numbers
 
 Output page numbers (format C<Page n of m>, bottom right)
 

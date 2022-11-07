@@ -64,25 +64,32 @@ $pdf.save-as: "foobar.pdf"
 
 Command Line Options:
 
-**'--width=n'**
+define
+======
+
+--save-as=pdf-filename
+
+File-name for the PDF output file. If not given, the output will be saved to a temporary file. The file-name is echoed to <`stdout`. 
+
+**--width=n**
 
 
 
 Page width in points (default: 592)
 
-**'--height=n'**
+**--height=n**
 
 
 
 Page height in points (default: 792)
 
-**'--margin=n'**
+**--margin=n**
 
 
 
 Page margin in points (default: 792)
 
-**'--page-numbers'**
+**--page-numbers**
 
 
 
