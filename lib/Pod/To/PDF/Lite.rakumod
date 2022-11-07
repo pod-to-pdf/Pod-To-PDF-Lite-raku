@@ -13,12 +13,11 @@ has PDF::Lite $.pdf .= new;
 has Str %!metadata;
 has PDF::Content::FontObj %.font-map;
 has Lock:D $!lock .= new;
-
-method pdf {
-    $!pdf;
-}
+has Numeric $.width  = 612;
+has Numeric $.height = 792;
 
 method !init-pdf(Str :$lang) {
+    $!pdf.media-box = 0, 0, $!width, $!height;
     $!pdf.Root<Lang> //= $_ with $lang;
     given $!pdf.Info //= {} {
         .CreationDate //= DateTime.now;
@@ -42,6 +41,7 @@ method !preload-fonts(@fonts) {
 }
 
 method read-batch($pod, PDF::Content::PageTree:D $pages, |c) is hidden-from-backtrace {
+    $pages.media-box = 0, 0, $!width, $!height;
     my Pod::To::PDF::Lite::Writer $writer .= new: :%!font-map, :$pages, |c;
     $writer.write($pod);
     $!lock.protect: {
@@ -64,17 +64,23 @@ submethod TWEAK(Str :$lang = 'en', :$pod, :%metadata, :@fonts, |c) {
 
 method render(
     $class: $pod,
-    IO() :$pdf-file = tempfile("pod2pdf-lite-****.pdf", :!unlink)[1],
-    UInt:D :$width  = 612,
-    UInt:D :$height = 792,
+    IO() :$pdf-file is copy = tempfile("pod2pdf-lite-****.pdf", :!unlink)[1],
+    UInt:D :$width  is copy = 612,
+    UInt:D :$height is copy = 792,
     |c,
 ) {
     state %cache{Any};
     %cache{$pod} //= do {
+        for @*ARGS {
+            when /^'--width='(\d+)$/   { $width  = $0.Int }
+            when /^'--height='(\d+)$/  { $height = $0.Int }
+            when /^'--save-as='(.+)$/  { $pdf-file = $0.Str }
+            default { note "ignoring $_ argument" }
+        }
+
         # render method may be called more than once: Rakudo #2588
-        my $renderer = $class.new(|c, :$pod);
+        my $renderer = $class.new: |c, :$width, :$height, :$pod;
         my PDF::Lite $pdf = $renderer.pdf;
-        $pdf.media-box = 0, 0, $width, $height;
         # save to a file, since PDF is a binary format
         $pdf.save-as: $pdf-file;
         $pdf-file.path;
@@ -133,7 +139,7 @@ Renders Pod to PDF draft documents via PDF::Lite.
 
 From command line:
 
-    $ raku --doc=PDF::Lite lib/to/class.rakumod | xargs evince
+    $ raku --doc=PDF::Lite lib/to/class.rakumod --save-as=lib-to-class.pdf
 
 From Raku:
     =begin code :lang<raku>
@@ -181,7 +187,7 @@ be further manipulated, or saved to a PDF file.
 
 ```raku
 sub pod2pdf(
-    Pod::Block $pod
+    Pod::Block $pod,
 ) returns PDF::Lite;
 ```
 
@@ -192,7 +198,7 @@ further manipulated or saved.
 An existing PDF::Lite object to add pages to.
 
 =defn `UInt:D :$width, UInt:D :$height`
-The page size in points (there are 72 points per inch).
+The page size in points (default 612 x 792).
 
 =defn `UInt:D :$margin`
 The page margin in points (default 20).

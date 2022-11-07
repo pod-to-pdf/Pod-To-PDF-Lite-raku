@@ -50,6 +50,7 @@ method !add-page {
     $!gfx = $!page.gfx;
     $!tx = $!margin;
     $!ty = $!page.height - 2 * $!margin;
+
     # suppress whitespace before significant content
     $!padding = 0;
 }
@@ -57,12 +58,13 @@ method !add-page {
 method !finish-page {
     self!finish-code
         if $!code-start-y;
+
     if @!footnotes {
         temp $.style .= new: :lines-before(0); # avoid current styling
         $!tx = 0;
         $!ty = self!bottom;
         $!gutter = 0;
-        self!draw-line($!margin, $!ty, $.gfx.canvas.width - 2*$!margin, $!ty);
+        self!draw-line($!margin, $!ty, $.gfx.canvas.width - $!margin, $!ty);
         while @!footnotes {
             $!padding = 1;
             my $footnote = @!footnotes.shift;

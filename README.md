@@ -18,7 +18,7 @@ Usage
 
 From command line:
 
-    $ raku --doc=PDF::Lite lib/to/class.rakumod | xargs evince
+    $ raku --doc=PDF::Lite lib/to/class.rakumod --save-as=lib-to-class.pdf
 
 From Raku:
 
@@ -67,7 +67,7 @@ Subroutines
 
 ### sub pod2pdf()
 
-```raku sub pod2pdf( Pod::Block $pod ) returns PDF::Lite; ```
+```raku sub pod2pdf( Pod::Block $pod, ) returns PDF::Lite; ```
 
 Renders the specified Pod to a PDF::Lite object, which can then be further manipulated or saved.
 
@@ -77,7 +77,7 @@ An existing PDF::Lite object to add pages to.
 
 **`UInt:D :$width, UInt:D :$height`**
 
-The page size in points (there are 72 points per inch).
+The page size in points (default 612 x 792).
 
 **`UInt:D :$margin`**
 
