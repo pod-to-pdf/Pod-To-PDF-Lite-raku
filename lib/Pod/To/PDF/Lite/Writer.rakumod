@@ -30,6 +30,7 @@ has $!tx = $!margin; # text-flow x
 has $!ty; # text-flow y
 has Numeric $!code-start-y;
 has @!footnotes;
+has $.finish = True;
 
 method write($pod) {
     self.pod2pdf($pod);
@@ -74,9 +75,11 @@ method !finish-page {
         }
     }
 
-    # Finalize the page graphics. This will speed up
-    # PDF construction in the main thread
-    .finish with $!page;
+    if $!finish {
+        # Finalize the page graphics. This will speed up
+        # PDF construction in the main thread
+        .finish with $!page;
+    }
 }
 
 my constant vpad = 2;

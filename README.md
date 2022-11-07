@@ -43,7 +43,7 @@ Exports
 From command line:
 
 ```shell
-$ raku --doc=PDF::Lite lib/to/class.rakumod | xargs evince
+$ raku --doc=PDF::Lite lib/to/class.rakumod --save-as=class.pdf
 ```
 
 From Raku code, the `pod2pdf` function returns a [PDF::Lite](PDF::Lite) object which can be further manipulated, or saved to a PDF file.
@@ -61,6 +61,32 @@ foobar.raku
 my PDF::Lite $pdf = pod2pdf($=pod);
 $pdf.save-as: "foobar.pdf"
 ```
+
+Command Line Options:
+
+**'--width=n'**
+
+
+
+Page width in points (default: 592)
+
+**'--height=n'**
+
+
+
+Page height in points (default: 792)
+
+**'--margin=n'**
+
+
+
+Page margin in points (default: 792)
+
+**'--page-numbers'**
+
+
+
+Output page numbers (format `Page n of m`, bottom right)
 
 Subroutines
 -----------

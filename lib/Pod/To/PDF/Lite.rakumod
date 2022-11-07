@@ -15,6 +15,8 @@ has PDF::Content::FontObj %.font-map;
 has Lock:D $!lock .= new;
 has Numeric $.width  = 612;
 has Numeric $.height = 792;
+has Numeric $.margin = 20;
+has Bool $.page-numbers;
 
 method !init-pdf(Str :$lang) {
     $!pdf.media-box = 0, 0, $!width, $!height;
@@ -42,16 +44,34 @@ method !preload-fonts(@fonts) {
 
 method read-batch($pod, PDF::Content::PageTree:D $pages, |c) is hidden-from-backtrace {
     $pages.media-box = 0, 0, $!width, $!height;
-    my Pod::To::PDF::Lite::Writer $writer .= new: :%!font-map, :$pages, |c;
+    my $finish = ! $!page-numbers;
+    my Pod::To::PDF::Lite::Writer $writer .= new: :%!font-map, :$pages, :$finish, |c;
     $writer.write($pod);
     $!lock.protect: {
         self.metadata(.key) = .value for $writer.metadata.pairs;
     }
 }
 
+method !paginate($pdf) {
+    my $page-count = $pdf.Pages.page-count;
+    my $font = $pdf.core-font: "Helvetica";
+    my $font-size := 8;
+    my $align := 'right';
+    my $page-num;
+    for $pdf.Pages.iterate-pages -> $page {
+        my PDF::Content $gfx = $page.gfx;
+        my @position = $gfx.width - $!margin, $!margin - $font-size;
+        my $text = "Page {++$page-num} of $page-count";
+        $gfx.print: $text, :@position, :$font, :$font-size, :$align;
+        $page.finish;
+    }
+}
+
 # 'sequential' single-threaded processing mode
 method read($pod, |c) {
     self.read-batch: $pod, $!pdf.Pages, |c;
+    self!paginate($!pdf)
+        if $!page-numbers;
 }
 
 submethod TWEAK(Str :$lang = 'en', :$pod, :%metadata, :@fonts, |c) {
@@ -67,19 +87,23 @@ method render(
     IO() :$pdf-file is copy = tempfile("pod2pdf-lite-****.pdf", :!unlink)[1],
     UInt:D :$width  is copy = 612,
     UInt:D :$height is copy = 792,
+    UInt:D :$margin is copy = 20,
+    Bool :$page-numbers is copy,
     |c,
 ) {
     state %cache{Any};
     %cache{$pod} //= do {
         for @*ARGS {
+            when /^'--page-numbers'$/  { $page-numbers = True }
             when /^'--width='(\d+)$/   { $width  = $0.Int }
             when /^'--height='(\d+)$/  { $height = $0.Int }
+            when /^'--margin='(\d+)$/  { $margin = $0.Int }
             when /^'--save-as='(.+)$/  { $pdf-file = $0.Str }
             default { note "ignoring $_ argument" }
         }
 
         # render method may be called more than once: Rakudo #2588
-        my $renderer = $class.new: |c, :$width, :$height, :$pod;
+        my $renderer = $class.new: |c, :$width, :$height, :$pod, :$margin, :$page-numbers;
         my PDF::Lite $pdf = $renderer.pdf;
         # save to a file, since PDF is a binary format
         $pdf.save-as: $pdf-file;
@@ -161,7 +185,7 @@ From Raku:
 
 From command line:
 =for code :lang<shell>
-$ raku --doc=PDF::Lite lib/to/class.rakumod | xargs evince
+$ raku --doc=PDF::Lite lib/to/class.rakumod --save-as=class.pdf
 
 From Raku code, the C<pod2pdf> function returns a L<PDF::Lite> object which can
 be further manipulated, or saved to a PDF file.
@@ -180,6 +204,23 @@ be further manipulated, or saved to a PDF file.
     $pdf.save-as: "foobar.pdf"
     =end code
 
+Command Line Options:
+
+=defn '--width=n'
+
+Page width in points (default: 592)
+
+=defn '--height=n'
+
+Page height in points (default: 792)
+
+=defn '--margin=n'
+
+Page margin in points (default: 792)
+
+=defn '--page-numbers'
+
+Output page numbers (format C<Page n of m>, bottom right)
 
 =head2 Subroutines
 
