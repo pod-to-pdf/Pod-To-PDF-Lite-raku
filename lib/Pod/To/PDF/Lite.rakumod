@@ -206,11 +206,11 @@ be further manipulated, or saved to a PDF file.
 
 Command Line Options:
 
-=define --save-as=pdf-filename
+=defn --save-as=pdf-filename
 
 File-name for the PDF output file. If not given, the
 output will be saved to a temporary file. The file-name
-is echoed to <C<stdout>.                                                    
+is echoed to C<stdout>.
 
 =defn --width=n
 

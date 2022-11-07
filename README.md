@@ -64,12 +64,11 @@ $pdf.save-as: "foobar.pdf"
 
 Command Line Options:
 
-define
-======
+**--save-as=pdf-filename**
 
---save-as=pdf-filename
 
-File-name for the PDF output file. If not given, the output will be saved to a temporary file. The file-name is echoed to <`stdout`. 
+
+File-name for the PDF output file. If not given, the output will be saved to a temporary file. The file-name is echoed to `stdout`.
 
 **--width=n**
 
