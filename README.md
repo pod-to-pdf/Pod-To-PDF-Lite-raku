@@ -86,7 +86,7 @@ Page height in points (default: 792)
 
 
 
-Page margin in points (default: 792)
+Page margin in points (default: 20)
 
 **--page-numbers**
 
