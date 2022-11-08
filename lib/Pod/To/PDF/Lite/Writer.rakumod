@@ -62,7 +62,8 @@ method !finish-page {
 
     if @!footnotes {
         temp $.style .= new: :lines-before(0); # avoid current styling
-        $!tx = 0;
+        temp $!indent = 0;
+        $!tx = $!margin;
         $!ty = self!bottom;
         $!gutter = 0;
         self!draw-line($!margin, $!ty, $.gfx.canvas.width - $!margin, $!ty);
@@ -325,6 +326,7 @@ multi method pod2pdf(Pod::FormattingCode $pod) {
                 temp $!style .= new;
                 temp $!tx = $!margin;
                 temp $!ty = $!page.height;
+                temp $!indent = 0;
                 my $draft-footnote = $ind ~ $.pod2text-inline($pod.contents);
                 $!gutter += self!text-box($draft-footnote).lines;
             }
