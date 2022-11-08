@@ -62,7 +62,7 @@ my PDF::Lite $pdf = pod2pdf($=pod);
 $pdf.save-as: "foobar.pdf"
 ```
 
-Command Line Options:
+### Command Line Options:
 
 **--save-as=pdf-filename**
 

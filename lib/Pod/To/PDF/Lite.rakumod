@@ -78,13 +78,17 @@ submethod TWEAK(Str :$lang = 'en', :$pod, :%metadata, :@fonts, |c) {
     self!init-pdf(:$lang);
     self!preload-fonts(@fonts)
         if @fonts;
+    if $!margin < 10 && $!page-numbers {
+        note "omitting page-numbers for margin < 10";
+        $!page-numbers = False;
+    }
     self.metadata(.key.lc) = .value for %metadata.pairs;
     self.read($_, |c) with $pod;
 }
 
 method render(
     $class: $pod,
-    IO() :$pdf-file is copy = tempfile("pod2pdf-lite-****.pdf", :!unlink)[1],
+    IO() :$save-as is copy = tempfile("pod2pdf-lite-****.pdf", :!unlink)[1],
     UInt:D :$width  is copy = 612,
     UInt:D :$height is copy = 792,
     UInt:D :$margin is copy = 20,
@@ -98,7 +102,7 @@ method render(
             when /^'--width='(\d+)$/   { $width  = $0.Int }
             when /^'--height='(\d+)$/  { $height = $0.Int }
             when /^'--margin='(\d+)$/  { $margin = $0.Int }
-            when /^'--save-as='(.+)$/  { $pdf-file = $0.Str }
+            when /^'--save-as='(.+)$/  { $save-as = $0.Str }
             default { note "ignoring $_ argument" }
         }
 
@@ -106,8 +110,8 @@ method render(
         my $renderer = $class.new: |c, :$width, :$height, :$pod, :$margin, :$page-numbers;
         my PDF::Lite $pdf = $renderer.pdf;
         # save to a file, since PDF is a binary format
-        $pdf.save-as: $pdf-file;
-        $pdf-file.path;
+        $pdf.save-as: $save-as;
+        $save-as.path;
     }
 }
 
@@ -204,7 +208,7 @@ be further manipulated, or saved to a PDF file.
     $pdf.save-as: "foobar.pdf"
     =end code
 
-Command Line Options:
+=head3 Command Line Options:
 
 =defn --save-as=pdf-filename
 

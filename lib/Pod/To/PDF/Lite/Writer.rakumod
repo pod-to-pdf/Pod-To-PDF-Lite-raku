@@ -50,7 +50,7 @@ method !add-page {
     $!page = $!pages.add-page;
     $!gfx = $!page.gfx;
     $!tx = $!margin;
-    $!ty = $!page.height - 2 * $!margin;
+    $!ty = $!page.height - $!margin - 16;
 
     # suppress whitespace before significant content
     $!padding = 0;
@@ -537,6 +537,7 @@ method !pad-here {
     $.say for ^$!padding;
     $!padding = 0;
 }
+
 method print(Str $text, Bool :$nl, :$reflow = True, |c) {
     self!pad-here;
     my PDF::Content::Text::Box $tb = self!text-box: $text, |c;
@@ -616,7 +617,7 @@ method !finish-code {
     my constant pad = 5;
     with $!code-start-y -> $y0 {
         my $x0 = self!indent;
-        my $width = $.gfx.canvas.width - $!margin - $x0;
+        my $width = $.gfx.canvas.width - $!margin - $x0 - 2*pad;
         $.gfx.graphics: {
             my constant Black = 0;
             .FillColor = color Black;
