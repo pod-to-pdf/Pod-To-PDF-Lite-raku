@@ -70,7 +70,8 @@ method !finish-page {
         while @!footnotes {
             $!padding = 1;
             my $footnote = @!footnotes.shift;
-            self!style: :link, { self.print($footnote.shift) }; # [n]
+            my $ind = $footnote.shift;
+            self!style: :link, { self.print($ind) }; # [n]
             $!tx += 2;
             $.pod2pdf($footnote);
         }
@@ -597,7 +598,7 @@ method !style(&codez, Int :$indent, Bool :$pad, |c) {
 }
 
 method !heading($pod is copy, Level :$level = $.level, :$underline = $level <= 1, :$!padding = 2) {
-    my constant HeadingSizes = 24, 20, 16, 13, 11.5, 10, 10;
+    my constant HeadingSizes = 28, 24, 20, 16, 14, 12, 12;
     my $font-size = HeadingSizes[$level];
     my Bool $bold   = $level <= 4;
     my Bool $italic;

@@ -55,7 +55,7 @@ method read-batch($pod, PDF::Content::PageTree:D $pages, |c) is hidden-from-back
 method !paginate($pdf) {
     my $page-count = $pdf.Pages.page-count;
     my $font = $pdf.core-font: "Helvetica";
-    my $font-size := 8;
+    my $font-size := 9;
     my $align := 'right';
     my $page-num;
     for $pdf.Pages.iterate-pages -> $page {
