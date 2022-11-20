@@ -2,6 +2,10 @@ Revision history for Pod-To-PDF-Lite
 
 {{$NEXT}}
 
+0.1.7  2022-11-21T07:55:51+13:00
+    - Increase font-sizes by about 20%. Better match
+      Pod::To::PDF.
+
 0.1.6  2022-11-09T13:57:19+13:00
     - Minor corrections to documentation and footnote positioning
 
