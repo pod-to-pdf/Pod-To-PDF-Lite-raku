@@ -533,7 +533,8 @@ method !text-box(
     :$height = self!height-remaining,
     |c) {
     my $indent = $!tx - $!margin;
-    PDF::Content::Text::Box.new: :$text, :$indent, :$.leading, :$.font, :$.font-size, :$width, :$height, :$.verbatim, |c;
+    my Bool $kern = !$.mono;
+    PDF::Content::Text::Box.new: :$text, :$indent, :$.leading, :$.font, :$.font-size, :$width, :$height, :$.verbatim, :$kern, |c;
 }
 
 method !pad-here {

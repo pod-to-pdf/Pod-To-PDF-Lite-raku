@@ -1,6 +1,7 @@
 Revision history for Pod-To-PDF-Lite
 
 {{$NEXT}}
+    - Enable kerning.
 
 0.1.7  2022-11-21T07:55:51+13:00
     - Increase font-sizes by about 20%. Better match
