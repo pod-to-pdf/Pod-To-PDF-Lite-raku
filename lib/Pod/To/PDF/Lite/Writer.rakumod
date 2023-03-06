@@ -645,7 +645,7 @@ method !code(@contents is copy) {
         self!pad-here;
         my @plain-text;
 
-        for 0 ..^ @contents -> $i {
+        for ^@contents -> $i {
             $!code-start-y //= $!ty;
             given @contents[$i] {
                 when Str {
