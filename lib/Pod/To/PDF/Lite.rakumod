@@ -4,6 +4,7 @@ use PDF::Content;
 use PDF::Content::FontObj;
 use File::Temp;
 
+use PDF;
 use Pod::To::PDF::Lite::Style;
 use Pod::To::PDF::Lite::Writer;
 

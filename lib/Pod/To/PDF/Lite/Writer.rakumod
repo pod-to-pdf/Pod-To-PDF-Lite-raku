@@ -497,18 +497,12 @@ sub param2text($p) {
     $p.raku ~ ',' ~ ( $p.WHY ?? ' # ' ~ $p.WHY !! ' ')
 }
 
-multi method pod2pdf(Array $pod) {
-    for $pod.list {
-        $.pod2pdf($_);
-    };
-}
-
 multi method pod2pdf(Str $pod) {
     $.print($pod);
 }
 
 multi method pod2pdf(List:D $pod) {
-    $.pod2pdf($_) for $pod.List;
+    $.pod2pdf($_) for $pod.list;
 }
 
 multi method pod2pdf($pod) {
