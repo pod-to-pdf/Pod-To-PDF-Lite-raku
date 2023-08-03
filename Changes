@@ -2,12 +2,15 @@ Revision history for Pod-To-PDF-Lite
 
 {{$NEXT}}
 
+0.1.9  2023-08-03T14:12:17+12:00
+    - Use PDF::Content 0.6.14+ text flow
+
 0.1.8  2023-03-29T09:27:02+13:00
     - Fix loading of latest PDF version
     - Enable kerning.
 
 0.1.7  2022-11-21T07:55:51+13:00
-    - Increase font-sizes by about 20%. Better match
+    - Increase font-sizes by about 20%. Better match the output of
       Pod::To::PDF.
 
 0.1.6  2022-11-09T13:57:19+13:00
