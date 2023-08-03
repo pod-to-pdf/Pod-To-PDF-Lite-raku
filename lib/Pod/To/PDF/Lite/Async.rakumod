@@ -3,8 +3,8 @@ unit class Pod::To::PDF::Lite::Async:ver<0.1.9>;
 
 use Pod::To::PDF::Lite;
 also is Pod::To::PDF::Lite;
-use Pod::To::PDF::Lite::Async::Scheduler;
 
+use Pod::To::PDF::Lite::Async::Scheduler;
 use PDF::Content::PageTree;
 
 method read(@pod, |c) {

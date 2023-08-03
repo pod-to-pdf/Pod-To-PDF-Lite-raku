@@ -555,7 +555,9 @@ method print(Str $text, Bool :$nl, :$reflow = True, |c) {
 
     $gfx.text: {
         .print: $tb, |$pos, :$nl;
-        $!tx = $nl ?? $!margin !! .text-position[0] - 10 * $!indent;
+        $!tx = $!margin;
+        $!tx += .text-position[0] - self!indent
+            unless $nl;
     }
     self!underline: $tb
         if $.underline;
