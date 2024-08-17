@@ -134,7 +134,7 @@ method !table-row(@row, @widths, Bool :$header) {
                     $tb .= clone: :$width, :$height;
                 }
 
-                $.gfx.print: $tb, :position[$tab, $!ty];
+                $.gfx.print: $tb, :position[$tab, $!ty], :shape;
                 if $header {
                     # draw underline
                     my $y = $!ty + $tb.underline-position - $head-space;
@@ -554,7 +554,7 @@ method print(Str $text, Bool :$nl, :$reflow = True, |c) {
     }
 
     $gfx.text: {
-        .print: $tb, |$pos, :$nl;
+        .print: $tb, |$pos, :$nl, :shape;
         $!tx = $!margin;
         $!tx += .text-position[0] - self!indent
             unless $nl;

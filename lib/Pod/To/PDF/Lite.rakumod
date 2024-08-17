@@ -19,9 +19,12 @@ has Numeric $.height = 792;
 has Numeric $.margin = 20;
 has Bool $.page-numbers;
 
+method lang is rw { $!pdf.Root<Lang>; }
+
 method !init-pdf(Str :$lang) {
     $!pdf.media-box = 0, 0, $!width, $!height;
-    $!pdf.Root<Lang> //= $_ with $lang;
+    self.lang = $_ with $lang;
+
     given $!pdf.Info //= {} {
         .CreationDate //= DateTime.now;
         .Producer //= "{self.^name}-{self.^ver}";
@@ -48,9 +51,11 @@ method read-batch($pod, PDF::Content::PageTree:D $pages, |c) is hidden-from-back
     my $finish = ! $!page-numbers;
     my Pod::To::PDF::Lite::Writer $writer .= new: :%!font-map, :$pages, :$finish, |c;
     $writer.write($pod);
-    $!lock.protect: {
-        self.metadata(.key) = .value for $writer.metadata.pairs;
-    }
+    $writer.metadata;
+}
+
+method merge-batch(%metadata) {
+    self.metadata(.key) = .value for %metadata;
 }
 
 method !paginate($pdf) {
@@ -168,7 +173,7 @@ Renders Pod to PDF draft documents via PDF::Lite.
 
 From command line:
 
-    $ raku --doc=PDF::Lite lib/to/class.rakumod --save-as=lib-to-class.pdf
+    $ raku --doc=PDF::Lite lib/To/Class.rakumod --save-as=To-Class.pdf
 
 From Raku:
     =begin code :lang<raku>
