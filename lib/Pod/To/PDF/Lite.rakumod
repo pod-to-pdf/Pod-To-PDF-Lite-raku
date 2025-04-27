@@ -98,6 +98,10 @@ method render(
     UInt:D :$width  is copy = 612,
     UInt:D :$height is copy = 792,
     UInt:D :$margin is copy = 20,
+    UInt   :$margin-left   is copy,
+    UInt   :$margin-right  is copy,
+    UInt   :$margin-top    is copy,
+    UInt   :$margin-bottom is copy,
     Bool :$page-numbers is copy,
     |c,
 ) {
@@ -108,12 +112,17 @@ method render(
             when /^'--width='(\d+)$/   { $width  = $0.Int }
             when /^'--height='(\d+)$/  { $height = $0.Int }
             when /^'--margin='(\d+)$/  { $margin = $0.Int }
+            when /^'--margin-top='(\d+)$/     { $margin-top = $0.Int }
+            when /^'--margin-bottom='(\d+)$/  { $margin-bottom = $0.Int }
+            when /^'--margin-left='(\d+)$/    { $margin-left = $0.Int }
+            when /^'--margin-right='(\d+)$/   { $margin-right = $0.Int }
             when /^'--save-as='(.+)$/  { $save-as = $0.Str }
             default { note "ignoring $_ argument" }
         }
 
         # render method may be called more than once: Rakudo #2588
-        my $renderer = $class.new: |c, :$width, :$height, :$pod, :$margin, :$page-numbers;
+        my $renderer = $class.new: |c, :$width, :$height, :$pod, :$margin, :$page-numbers,
+                       :$margin-left, :$margin-right, :$margin-top, :$margin-bottom;
         my PDF::Lite $pdf = $renderer.pdf;
         # save to a file, since PDF is a binary format
         $pdf.save-as: $save-as;
@@ -203,7 +212,7 @@ be further manipulated, or saved to a PDF file.
     =begin code :lang<raku>
     use Pod::To::PDF::Lite;
     use PDF::Lite;
- 
+
     =NAME
     foobar.raku
 
@@ -230,9 +239,9 @@ Page width in points (default: 592)
 
 Page height in points (default: 792)
 
-=defn --margin=n
+=defn --margin=n --margin-left=n --margin-right=n --margin-top=n --margin-bottom=n
 
-Page margin in points (default: 20)
+Page margins in points (default: 20)
 
 =defn --page-numbers
 

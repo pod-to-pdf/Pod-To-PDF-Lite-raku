@@ -25,12 +25,23 @@ has UInt:D $.level = 1;
 has $!gutter = Gutter;
 has UInt $!padding = 0;
 has UInt $!indent = 0;
-has $.margin = 20;
-has $!tx = $!margin; # text-flow x
+has Numeric $.margin-left;
+has Numeric $.margin-right;
+has Numeric $.margin-top;
+has Numeric $.margin-bottom;
+has $!tx = $!margin-left; # text-flow x
 has $!ty; # text-flow y
 has Numeric $!code-start-y;
 has @!footnotes;
 has $.finish = True;
+
+submethod TWEAK(Numeric:D :$margin = 20) {
+    # CSS-like defaulting of margins
+    $!margin-top    //= $margin;
+    $!margin-left   //= $margin;
+    $!margin-bottom //= $margin;
+    $!margin-right  //= $margin;
+}
 
 method write($pod) {
     self.pod2pdf($pod);
@@ -49,8 +60,8 @@ method !add-page {
     $!gutter = Gutter;
     $!page = $!pages.add-page;
     $!gfx = $!page.gfx;
-    $!tx = $!margin;
-    $!ty = $!page.height - $!margin - 16;
+    $!tx = $!margin-left;
+    $!ty = $!page.height - $!margin-top - 16;
 
     # suppress whitespace before significant content
     $!padding = 0;
@@ -63,10 +74,10 @@ method !finish-page {
     if @!footnotes {
         temp $.style .= new: :lines-before(0); # avoid current styling
         temp $!indent = 0;
-        $!tx = $!margin;
+        $!tx = $!margin-left;
         $!ty = self!bottom;
         $!gutter = 0;
-        self!draw-line($!margin, $!ty, $.gfx.canvas.width - $!margin, $!ty);
+        self!draw-line($!margin-left, $!ty, $.gfx.canvas.width - $!margin-right, $!ty);
         while @!footnotes {
             $!padding = 1;
             my $footnote = @!footnotes.shift;
@@ -123,7 +134,7 @@ method !table-row(@row, @widths, Bool :$header) {
         # simple fixed column widths, for now
         my $tab = self!indent;
         my $row-height = 0;
-        my $height = $!ty - $!margin;
+        my $height = $!ty - $!margin-bottom;
         my $head-space = $.line-height - $.font-size;
 
         for ^cols {
@@ -172,7 +183,7 @@ method !table-cell($pod) {
 # prepare a table as a grid of text boxes. compute column widths
 method !build-table($pod, @table) {
     my $x0 = self!indent;
-    my \total-width = $.gfx.canvas.width - $x0 - $!margin;
+    my \total-width = $.gfx.canvas.width - $x0 - $!margin-right;
     @table = ();
 
     self!style: :bold, :lines-before(3), {
@@ -325,7 +336,7 @@ multi method pod2pdf(Pod::FormattingCode $pod) {
             do {
                 # pre-compute footnote size
                 temp $!style .= new;
-                temp $!tx = $!margin;
+                temp $!tx = $!margin-left;
                 temp $!ty = $!page.height;
                 temp $!indent = 0;
                 my $draft-footnote = $ind ~ $.pod2text-inline($pod.contents);
@@ -512,7 +523,7 @@ multi method pod2pdf($pod) {
 }
 
 multi method say {
-    $!tx = $!margin;
+    $!tx = $!margin-left;
     $!ty -= $!style.line-height;
     $!padding = 0;
 }
@@ -524,10 +535,10 @@ method font { $.style.font: :%!font-map }
 
 method !text-box(
     Str $text,
-    :$width = $.gfx.canvas.width - self!indent - $!margin,
+    :$width = $.gfx.canvas.width - self!indent - $!margin-right,
     :$height = self!height-remaining,
     |c) {
-    my $indent = $!tx - $!margin;
+    my $indent = $!tx - $!margin-left;
     my Bool $kern = !$.mono;
     PDF::Content::Text::Box.new: :$text, :$indent, :$.leading, :$.font, :$.font-size, :$width, :$height, :$.verbatim, :$kern, |c;
 }
@@ -555,7 +566,7 @@ method print(Str $text, Bool :$nl, :$reflow = True, |c) {
 
     $gfx.text: {
         .print: $tb, |$pos, :$nl, :shape;
-        $!tx = $!margin;
+        $!tx = $!margin-left;
         $!tx += .text-position[0] - self!indent
             unless $nl;
     }
@@ -609,7 +620,7 @@ method !finish-code {
     my constant pad = 5;
     with $!code-start-y -> $y0 {
         my $x0 = self!indent;
-        my $width = $.gfx.canvas.width - $!margin - $x0 - 2*pad;
+        my $width = $.gfx.canvas.width - $!margin-right - $x0 - 2*pad;
         $.gfx.graphics: {
             my constant Black = 0;
             .FillColor = color Black;
@@ -683,18 +694,18 @@ method gfx {
     if !$!gfx.defined || self!height-remaining < $.lines-before * $.line-height {
         self!new-page;
     }
-    elsif $!tx > $!margin && $!tx > $!gfx.canvas.width - self!indent {
+    elsif $!tx > $!margin-right && $!tx > $!gfx.canvas.width - self!indent {
         self.say;
     }
     $!gfx;
 }
 method !height-remaining {
-    $!ty - $!margin - $!gutter * $.line-height;
+    $!ty - $!margin-bottom - $!gutter * $.line-height;
 }
-method !top { $!page.height - 2 * $!margin; }
-method !bottom { $!margin + ($!gutter-2) * $.line-height; }
+method !top { $!page.height - $!margin-top - $!margin-bottom }
+method !bottom { $!margin-bottom + ($!gutter-2) * $.line-height; }
 
-method !indent { $!margin  +  10 * $!indent; }
+method !indent { $!margin-left  +  10 * $!indent; }
 
 method pod2text-inline($pod) {
     $.pod2text($pod).subst(/\s+/, ' ', :g);

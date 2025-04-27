@@ -1,6 +1,7 @@
 Revision history for Pod-To-PDF-Lite
 
 {{$NEXT}}
+    - Add margin-(left|right|top|bottom) settings
 
 0.1.9  2023-08-03T14:12:17+12:00
     - Use PDF::Content 0.6.14+ text flow
