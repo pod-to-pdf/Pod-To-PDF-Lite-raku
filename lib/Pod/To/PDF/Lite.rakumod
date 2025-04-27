@@ -16,7 +16,6 @@ has PDF::Content::FontObj %.font-map;
 has Lock:D $!lock .= new;
 has Numeric $.width  = 612;
 has Numeric $.height = 792;
-has Numeric $.margin = 20;
 has Bool $.page-numbers;
 
 method lang is rw { $!pdf.Root<Lang>; }
@@ -58,25 +57,36 @@ method merge-batch(%metadata) {
     self.metadata(.key) = .value for %metadata;
 }
 
-method !paginate($pdf) {
+method !paginate($pdf,
+                 UInt:D :$margin = 20,
+                 UInt :$margin-right is copy,
+                 UInt :$margin-bottom is copy,
+                ) {
     my $page-count = $pdf.Pages.page-count;
     my $font = $pdf.core-font: "Helvetica";
     my $font-size := 9;
     my $align := 'right';
     my $page-num;
-    for $pdf.Pages.iterate-pages -> $page {
-        my PDF::Content $gfx = $page.gfx;
-        my @position = $gfx.width - $!margin, $!margin - $font-size;
-        my $text = "Page {++$page-num} of $page-count";
-        $gfx.print: $text, :@position, :$font, :$font-size, :$align;
-        $page.finish;
+    $margin-right //= $margin;
+    $margin-bottom //= $margin;
+    if $margin-bottom < 10 && $!page-numbers {
+        note "omitting page-numbers for margin-bottom < 10";
+    }
+    else {
+        for $pdf.Pages.iterate-pages -> $page {
+            my PDF::Content $gfx = $page.gfx;
+            my @position = $gfx.width - $margin-right, $margin-bottom - $font-size;
+            my $text = "Page {++$page-num} of $page-count";
+            $gfx.print: $text, :@position, :$font, :$font-size, :$align;
+            $page.finish;
+        }
     }
 }
 
 # 'sequential' single-threaded processing mode
 method read($pod, |c) {
     self.read-batch: $pod, $!pdf.Pages, |c;
-    self!paginate($!pdf)
+    self!paginate($!pdf, |c)
         if $!page-numbers;
 }
 
@@ -84,10 +94,6 @@ submethod TWEAK(Str :$lang = 'en', :$pod, :%metadata, :@fonts, |c) {
     self!init-pdf(:$lang);
     self!preload-fonts(@fonts)
         if @fonts;
-    if $!margin < 10 && $!page-numbers {
-        note "omitting page-numbers for margin < 10";
-        $!page-numbers = False;
-    }
     self.metadata(.key.lc) = .value for %metadata.pairs;
     self.read($_, |c) with $pod;
 }
@@ -107,6 +113,7 @@ method render(
 ) {
     state %cache{Any};
     %cache{$pod} //= do {
+        my Bool $usage;
         for @*ARGS {
             when /^'--page-numbers'$/  { $page-numbers = True }
             when /^'--width='(\d+)$/   { $width  = $0.Int }
@@ -117,8 +124,10 @@ method render(
             when /^'--margin-left='(\d+)$/    { $margin-left = $0.Int }
             when /^'--margin-right='(\d+)$/   { $margin-right = $0.Int }
             when /^'--save-as='(.+)$/  { $save-as = $0.Str }
-            default { note "ignoring $_ argument" }
+            default { $usage=True; note "ignoring $_ argument" }
         }
+        note '(valid options are: --save-as= --page-numbers --width= --height= --margin[-left|-right|-top|-bottom]=)'
+            if $usage;
 
         # render method may be called more than once: Rakudo #2588
         my $renderer = $class.new: |c, :$width, :$height, :$pod, :$margin, :$page-numbers,

@@ -7,7 +7,7 @@ use PDF::Lite;
 plan 1;
 
 my PDF::Lite $pdf = pod2pdf($=pod);
-$pdf.id = $*PROGRAM-NAME.fmt('%-16.16s');
+$pdf.id = $*PROGRAM.basename.fmt('%-16.16s');
 
 $pdf<Info>:delete; # because this is variable
 lives-ok {$pdf.save-as: "t/code.pdf", :!info;}
