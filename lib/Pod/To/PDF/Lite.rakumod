@@ -1,4 +1,4 @@
-unit class Pod::To::PDF::Lite:ver<0.1.9>;
+unit class Pod::To::PDF::Lite:ver<0.1.10>;
 use PDF::Lite;
 use PDF::Content;
 use PDF::Content::FontObj;
