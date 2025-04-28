@@ -98,17 +98,27 @@ submethod TWEAK(Str :$lang = 'en', :$pod, :%metadata, :@fonts, |c) {
     self.read($_, |c) with $pod;
 }
 
-method render(
+sub apply-css-style($style, *%props) {
+    CATCH {
+        when X::CompUnit::UnsatisfiedDependency {
+            note "Ignoring --style argument; Please install CSS::Properties"
+        }
+    }
+    my $css = (require ::('CSS::Properties')).new: :$style;
+    %props{.key} = .value for $css.Hash;
+}
+
+multi method render(
     $class: $pod,
-    IO() :$save-as is copy = tempfile("pod2pdf-lite-****.pdf", :!unlink)[1],
-    UInt:D :$width  is copy = 612,
-    UInt:D :$height is copy = 792,
-    UInt:D :$margin is copy = 20,
-    UInt   :$margin-left   is copy,
-    UInt   :$margin-right  is copy,
-    UInt   :$margin-top    is copy,
-    UInt   :$margin-bottom is copy,
-    Bool :$page-numbers is copy,
+    IO()   :$save-as is copy = tempfile("pod2pdf-lite-****.pdf", :!unlink)[1],
+    Numeric:D :$width  is copy = 612,
+    Numeric:D :$height is copy = 792,
+    Numeric:D :$margin is copy = 20,
+    Numeric   :$margin-left   is copy,
+    Numeric   :$margin-right  is copy,
+    Numeric   :$margin-top    is copy,
+    Numeric   :$margin-bottom is copy,
+    Bool   :$page-numbers is copy,
     |c,
 ) {
     state %cache{Any};
@@ -123,12 +133,17 @@ method render(
             when /^'--margin-bottom='(\d+)$/  { $margin-bottom = $0.Int }
             when /^'--margin-left='(\d+)$/    { $margin-left = $0.Int }
             when /^'--margin-right='(\d+)$/   { $margin-right = $0.Int }
+            when /^'--style='(.+)$/    {
+                apply-css-style($0.Str,
+                            :$width, :$height,
+                            :$margin-top, :$margin-bottom, :$margin-left, :$margin-right,
+                           )
+            }
             when /^'--save-as='(.+)$/  { $save-as = $0.Str }
             default { $usage=True; note "ignoring $_ argument" }
         }
-        note '(valid options are: --save-as= --page-numbers --width= --height= --margin[-left|-right|-top|-bottom]=)'
+        note '(valid options are: --save-as= --page-numbers --width= --height= --margin[-left|-right|-top|-bottom]= --style=)'
             if $usage;
-
         # render method may be called more than once: Rakudo #2588
         my $renderer = $class.new: |c, :$width, :$height, :$pod, :$margin, :$page-numbers,
                        :$margin-left, :$margin-right, :$margin-top, :$margin-bottom;
