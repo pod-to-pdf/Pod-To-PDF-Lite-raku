@@ -98,14 +98,15 @@ submethod TWEAK(Str :$lang = 'en', :$pod, :%metadata, :@fonts, |c) {
     self.read($_, |c) with $pod;
 }
 
-sub apply-css-style($style, *%props) {
+sub apply-css-properties($style, *%props) {
     CATCH {
         when X::CompUnit::UnsatisfiedDependency {
-            note "Ignoring --style argument; Please install CSS::Properties"
+            note "Ignoring --properties argument; CSS::Properties is not installed."
         }
     }
     my $css = (require ::('CSS::Properties')).new: :$style;
-    %props{.key} = .value for $css.Hash;
+    die X::CompUnit::UnsatisfiedDependency.new unless $css.^ver >= v0.10.0;
+    %props{.key} = .value for $css.Pairs;
 }
 
 multi method render(
@@ -133,16 +134,17 @@ multi method render(
             when /^'--margin-bottom='(\d+)$/  { $margin-bottom = $0.Int }
             when /^'--margin-left='(\d+)$/    { $margin-left = $0.Int }
             when /^'--margin-right='(\d+)$/   { $margin-right = $0.Int }
-            when /^'--style='(.+)$/    {
-                apply-css-style($0.Str,
-                            :$width, :$height,
-                            :$margin-top, :$margin-bottom, :$margin-left, :$margin-right,
-                           )
+            when /^'--properties='(.+)$/    {
+                apply-css-properties(
+                    $0.Str,
+                    :$width, :$height,
+                    :$margin-top, :$margin-bottom, :$margin-left, :$margin-right,
+                )
             }
             when /^'--save-as='(.+)$/  { $save-as = $0.Str }
             default { $usage=True; note "ignoring $_ argument" }
         }
-        note '(valid options are: --save-as= --page-numbers --width= --height= --margin[-left|-right|-top|-bottom]= --style=)'
+        note '(valid options are: --save-as= --page-numbers --width= --height= --margin[-left|-right|-top|-bottom]= --properties=)'
             if $usage;
         # render method may be called more than once: Rakudo #2588
         my $renderer = $class.new: |c, :$width, :$height, :$pod, :$margin, :$page-numbers,

@@ -18,7 +18,7 @@ Usage
 
 From command line:
 
-    $ raku --doc=PDF::Lite lib/To/Class.rakumod -style=css --save-as=To-Class.pdf
+    $ raku --doc=PDF::Lite lib/To/Class.rakumod -properties=css --save-as=To-Class.pdf
 
 From Raku:
 
@@ -95,15 +95,13 @@ Page margins in points (default: 20)
 Whether to output page numbers (format `Page n of m`, bottom right)
 
 
-**--style**
+**--properties**
 
 ```raku
-raku --doc=PDF::Lite lib/to/class.rakumod --style='margin:10px 20px; width:200pt; height:500pt" --save-as=class.pdf
+raku --doc=PDF::Lite lib/to/class.rakumod --properties='margin:10px 20px; width:200pt; height:500pt" --save-as=class.pdf
 ```
 
-[Pod::To::PDF::Lite](https://raku.land/zef:dwarring/Pod::To::PDF::Lite) rendering current supports `margin`, `width` and `height` properties.
-
-This option requires installation of the optional [CSS::Properties](https://css-raku.github.io/CSS-Properties-raku/) module;
+Set options via CSS properties. This option requires installation of the optional [CSS::Properties](https://css-raku.github.io/CSS-Properties-raku/) module;
 
 Subroutines
 -----------
