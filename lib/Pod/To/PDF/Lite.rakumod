@@ -98,15 +98,14 @@ submethod TWEAK(Str :$lang = 'en', :$pod, :%metadata, :@fonts, |c) {
     self.read($_, |c) with $pod;
 }
 
-sub apply-css-properties($style, *%props) {
+sub apply-page-styling($style, *%props) {
     CATCH {
         when X::CompUnit::UnsatisfiedDependency {
-            note "Ignoring --properties argument; CSS::Properties is not installed."
+            note "Ignoring --page-style argument; Please install CSS::Properties"
         }
     }
     my $css = (require ::('CSS::Properties')).new: :$style;
-    die X::CompUnit::UnsatisfiedDependency.new unless $css.^ver >= v0.10.0;
-    %props{.key} = .value for $css.Pairs;
+    %props{.key} = .value for $css.Hash;
 }
 
 multi method render(
@@ -119,12 +118,12 @@ multi method render(
     Numeric   :$margin-right  is copy,
     Numeric   :$margin-top    is copy,
     Numeric   :$margin-bottom is copy,
-    Bool   :$page-numbers is copy,
+    Bool      :$page-numbers is copy,
     |c,
 ) {
     state %cache{Any};
     %cache{$pod} //= do {
-        my Bool $usage;
+        my Bool $show-usage;
         for @*ARGS {
             when /^'--page-numbers'$/  { $page-numbers = True }
             when /^'--width='(\d+)$/   { $width  = $0.Int }
@@ -134,18 +133,17 @@ multi method render(
             when /^'--margin-bottom='(\d+)$/  { $margin-bottom = $0.Int }
             when /^'--margin-left='(\d+)$/    { $margin-left = $0.Int }
             when /^'--margin-right='(\d+)$/   { $margin-right = $0.Int }
-            when /^'--properties='(.+)$/    {
-                apply-css-properties(
-                    $0.Str,
-                    :$width, :$height,
-                    :$margin-top, :$margin-bottom, :$margin-left, :$margin-right,
-                )
+            when /^'--page-style='(.+)$/    {
+                apply-page-styling($0.Str,
+                            :$width, :$height,
+                            :$margin-top, :$margin-bottom, :$margin-left, :$margin-right,
+                           )
             }
             when /^'--save-as='(.+)$/  { $save-as = $0.Str }
-            default { $usage=True; note "ignoring $_ argument" }
+            default { $show-usage = True; note "ignoring $_ argument" }
         }
-        note '(valid options are: --save-as= --page-numbers --width= --height= --margin[-left|-right|-top|-bottom]= --properties=)'
-            if $usage;
+        note '(valid options are: --save-as= --page-numbers --width= --height= --margin[-left|-right|-top|-bottom]= --page-style=)'
+            if $show-usage;
         # render method may be called more than once: Rakudo #2588
         my $renderer = $class.new: |c, :$width, :$height, :$pod, :$margin, :$page-numbers,
                        :$margin-left, :$margin-right, :$margin-top, :$margin-bottom;
@@ -272,6 +270,15 @@ Page margins in points (default: 20)
 =defn --page-numbers
 
 Output page numbers (format C<Page n of m>, bottom right)
+
+=defn --page-style
+
+=begin code :lang<raku>
+-raku --doc=PDF::Lite lib/to/class.rakumod --page-style='margin:10px 20px; width:200pt; height:500pt" --save-as=class.pdf
+=end code
+
+Perform CSS C<@page> like styling of pages. At the moment, only margins and the page width and height can be set. The optional [CSS::Properties](https://css-raku.github.io/CSS-Properties-raku/) module needs to be installed to use this option.
+
 
 =head2 Subroutines
 

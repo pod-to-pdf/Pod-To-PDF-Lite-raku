@@ -36,7 +36,6 @@ has @!footnotes;
 has $.finish = True;
 
 submethod TWEAK(Numeric:D :$margin = 20) {
-    # CSS-like defaulting of margins
     $!margin-top    //= $margin;
     $!margin-left   //= $margin;
     $!margin-bottom //= $margin;
