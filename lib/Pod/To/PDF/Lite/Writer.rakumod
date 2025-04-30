@@ -34,6 +34,7 @@ has $!ty; # text-flow y
 has Numeric $!code-start-y;
 has @!footnotes;
 has $.finish = True;
+has Bool $!float;
 
 submethod TWEAK(Numeric:D :$margin = 20) {
     $!margin-top    //= $margin;
@@ -400,8 +401,7 @@ multi method pod2pdf(Pod::Item $pod) {
             my $bp = BulletPoints[$list-level - 1];
             $.print: $bp;
 
-            # slightly iffy $!ty fixup
-            $!ty += 2 * $.line-height;
+            $!float = True;
 
             self!style: :indent, {
                 $.pod2pdf($pod.contents);
@@ -543,7 +543,11 @@ method !text-box(
 }
 
 method !pad-here {
-    $.say for ^$!padding;
+    if $!padding && !$!float {
+        $!tx  = $!margin-left;
+        $!ty -= $!padding * $.line-height;
+    }
+    $!float = False;
     $!padding = 0;
 }
 
