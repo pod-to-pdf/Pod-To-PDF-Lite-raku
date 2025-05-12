@@ -7,7 +7,7 @@
   ],
   "depends": [
     "PDF::Lite",
-    "PDF::Content:ver<0.6.14+>",
+    "PDF::Content:ver<0.9.3+>",
     "File::Temp"
   ],
   "description": "Minimal Pod to PDF draft rendering",
