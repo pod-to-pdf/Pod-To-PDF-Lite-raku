@@ -12,7 +12,7 @@ use PDF::Content::Text::Box;
 use Pod::To::PDF::Lite::Style;
 
 my constant Gutter = 3;
-my constant FooterStyle = Pod::To::PDF::Lite::Style.new: :lines-before(0);
+my constant FooterStyle = Pod::To::PDF::Lite::Style.new: :lines-before(0), :font-size(10);
 subset Level of Int:D where 0..6;
 
 has PDF::Content::FontObj %.font-map is required;
