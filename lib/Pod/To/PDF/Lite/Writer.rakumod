@@ -9,9 +9,10 @@ use PDF::Content::FontObj;
 use PDF::Content::Page;
 use PDF::Content::PageTree;
 use PDF::Content::Text::Box;
-##use Pod::To::PDF::Lite::Style; # Raku <= 2022.04 issues
+use Pod::To::PDF::Lite::Style;
 
 my constant Gutter = 3;
+my constant FooterStyle = Pod::To::PDF::Lite::Style.new: :lines-before(0);
 subset Level of Int:D where 0..6;
 
 has PDF::Content::FontObj %.font-map is required;
@@ -20,7 +21,7 @@ has Str %.metadata; # output metadata
 has PDF::Content::PageTree:D $.pages is required;
 has PDF::Content::Page $!page;
 has PDF::Content $.gfx;
-has $.style handles<font-size leading line-height bold italic mono underline lines-before link verbatim> = (require ::('Pod::To::PDF::Lite::Style')).new;
+has Pod::To::PDF::Lite::Style $.style handles<font-size leading line-height bold italic mono underline lines-before link verbatim> .= new;
 has UInt:D $.level = 1;
 has $!gutter = Gutter;
 has Numeric $!padding = 0;
@@ -72,7 +73,7 @@ method !finish-page {
     self!finish-code
         if $!code-start-y;
     if @!footnotes {
-        temp $.style .= new: :lines-before(0); # avoid current styling
+        temp $.style = FooterStyle;
         temp $!indent = 0;
         temp $!code-start-y = Nil;
         $!tx = $!margin-left;
@@ -338,18 +339,18 @@ multi method pod2pdf(Pod::FormattingCode $pod) {
         }
         when 'N' {
             my $ind = '[' ~ @!footnotes+1 ~ ']';
-            self!style: :link, {  $.pod2pdf($ind); }
             my  @contents = $ind, $pod.contents.Slip;
             @!footnotes.push: @contents;
             do {
                 # pre-compute footnote size
-                temp $!style .= new;
+                temp $!style = FooterStyle;
                 temp $!tx = $!margin-left;
                 temp $!ty = $!page.height;
                 temp $!indent = 0;
                 my $draft-footnote = $ind ~ $.pod2text-inline($pod.contents);
                 $!gutter += self!text-box($draft-footnote).lines;
             }
+            self!style: :link, {  $.pod2pdf($ind); }
         }
         when 'U' {
             self!style: :underline, {
@@ -711,10 +712,10 @@ method gfx {
     $!gfx;
 }
 method !height-remaining {
-    $!ty - $!margin-bottom - $!gutter * $.line-height;
+    $!ty - $!margin-bottom - $!gutter * FooterStyle.line-height;
 }
 method !top { $!page.height - $!margin-top - $!margin-bottom }
-method !bottom { $!margin-bottom + ($!gutter-2) * $.line-height; }
+method !bottom { $!margin-bottom + ($!gutter-2) * FooterStyle.line-height; }
 
 method !indent { $!margin-left  +  10 * $!indent; }
 
