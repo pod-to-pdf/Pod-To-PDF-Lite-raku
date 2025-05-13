@@ -58,9 +58,9 @@ method merge-batch(%metadata) {
 }
 
 method !paginate($pdf,
-                 UInt:D :$margin = 20,
-                 UInt :$margin-right is copy,
-                 UInt :$margin-bottom is copy,
+                 Numeric:D :$margin = 20,
+                 Numeric :$margin-right is copy,
+                 Numeric :$margin-bottom is copy,
                 ) {
     my $page-count = $pdf.Pages.page-count;
     my $font = $pdf.core-font: "Helvetica";
