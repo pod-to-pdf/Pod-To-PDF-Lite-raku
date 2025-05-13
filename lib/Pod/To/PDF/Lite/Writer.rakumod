@@ -57,7 +57,6 @@ method !new-page {
     self!add-page();
 }
 
-my $n = 0;
 method !width { $!width //= do $.gfx.canvas.width }
 
 method !add-page {
@@ -681,7 +680,7 @@ method !code(@contents is copy) {
 }
 
 method !draw-line($x0, $y0, $x1, $y1 = $y0, :$linewidth = 1) {
-    given $.gfx {
+    given $!gfx {
         .Save;
         .SetLineWidth: $linewidth;
         .MoveTo: $x0, $y0;
