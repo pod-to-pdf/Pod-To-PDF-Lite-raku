@@ -2,6 +2,9 @@ Revision history for Pod-To-PDF-Lite
 
 {{$NEXT}}
 
+0.1.12  2025-05-14T08:35:06+12:00
+    - Reduce footnote font-size from 12 to 10pt
+
 0.1.11  2025-05-14T08:18:35+12:00
     - Add page-style option. Requires installation of
       the CSS::Properties module.
