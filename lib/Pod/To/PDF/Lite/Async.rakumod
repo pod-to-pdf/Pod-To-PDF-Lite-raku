@@ -1,5 +1,5 @@
 #| multi-threaded rendering mode
-unit class Pod::To::PDF::Lite::Async:ver<0.1.10>;
+unit class Pod::To::PDF::Lite::Async:ver<0.1.11>;
 
 use Pod::To::PDF::Lite;
 also is Pod::To::PDF::Lite;

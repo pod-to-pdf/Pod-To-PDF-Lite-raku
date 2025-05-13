@@ -1,4 +1,4 @@
-unit class Pod::To::PDF::Lite:ver<0.1.10>;
+unit class Pod::To::PDF::Lite:ver<0.1.11>;
 use PDF::Lite;
 use PDF::Content;
 use PDF::Content::FontObj;
@@ -277,7 +277,7 @@ Output page numbers (format C<Page n of m>, bottom right)
 -raku --doc=PDF::Lite lib/to/class.rakumod --page-style='margin:10px 20px; width:200pt; height:500pt" --save-as=class.pdf
 =end code
 
-Perform CSS C<@page> like styling of pages. At the moment, only margins and the page width and height can be set. The optional [CSS::Properties](https://css-raku.github.io/CSS-Properties-raku/) module needs to be installed to use this option.
+Perform CSS C<@page> like styling of pages. At the moment, only margins (C<margin>, C<margin-left>, C<margin-top>, C<margin-bottom>, C<margin-right>) and the page C<width> and C<height> can be set. The optional [CSS::Properties](https://css-raku.github.io/CSS-Properties-raku/) module needs to be installed to use this option.
 
 
 =head2 Subroutines

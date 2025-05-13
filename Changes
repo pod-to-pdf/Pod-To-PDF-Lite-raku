@@ -2,6 +2,11 @@ Revision history for Pod-To-PDF-Lite
 
 {{$NEXT}}
 
+0.1.11  2025-05-14T08:18:35+12:00
+    - Add page-style option. Requires installation of
+      the CSS::Properties module.
+    - Fix page-breaking issues related to footnotes.
+
 0.1.10  2025-04-28T09:06:33+12:00
     - Add margin-(left|right|top|bottom) settings
 
