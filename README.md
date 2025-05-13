@@ -102,7 +102,7 @@ Output page numbers (format `Page n of m`, bottom right)
 -raku --doc=PDF::Lite lib/to/class.rakumod --page-style='margin:10px 20px; width:200pt; height:500pt" --save-as=class.pdf
 ```
 
-Perform CSS `@page` like styling of pages. At the moment, only margins and the page width and height can be set. The optional [CSS::Properties](https://css-raku.github.io/CSS-Properties-raku/) module needs to be installed to use this option.
+Perform CSS `@page` like styling of pages. At the moment, only margins and the page `width` and `height` can be set. The optional [CSS::Properties](https://css-raku.github.io/CSS-Properties-raku/) module needs to be installed to use this option.
 
 Subroutines
 -----------

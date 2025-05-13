@@ -37,6 +37,7 @@ has @!footnotes;
 has $.finish = True;
 has Bool $!float;
 has Numeric $!width;
+has UInt:D $!pp = 0;
 
 submethod TWEAK(Numeric:D :$margin = 20) {
     $!margin-top    //= $margin;
@@ -66,6 +67,7 @@ method !add-page {
     $!tx = $!margin-left;
     $!ty = $!page.height - $!margin-top - 16;
     $!padding = 0;
+    $!pp++;
     $!gfx = $!page.gfx;
 }
 
@@ -79,7 +81,7 @@ method !finish-page {
         $!tx = $!margin-left;
         $!ty = min $!ty - $.line-height / 2, self!bottom;
         $!gutter = 0;
-        my $start-page = $!page;
+        my $start-page = $!pp;
         self!draw-line($!margin-left, $!ty, self!width - $!margin-right, $!ty);
         while @!footnotes {
             $!padding = $.line-height;
@@ -89,7 +91,7 @@ method !finish-page {
             $!tx += 2;
             $.pod2pdf($footnote);
         }
-        unless $!page === $start-page {
+        unless $!pp == $start-page {
             # page break in footnotes. draw closing HR
             $.say;
             my $y = $!ty + $.line-height / 2;
@@ -339,17 +341,22 @@ multi method pod2pdf(Pod::FormattingCode $pod) {
         }
         when 'N' {
             my $ind = '[' ~ @!footnotes+1 ~ ']';
-            my  @contents = $ind, $pod.contents.Slip;
-            @!footnotes.push: @contents;
-            do {
+            my UInt:D $footnote-lines = do {
                 # pre-compute footnote size
                 temp $!style = FooterStyle;
                 temp $!tx = $!margin-left;
                 temp $!ty = $!page.height;
                 temp $!indent = 0;
                 my $draft-footnote = $ind ~ $.pod2text-inline($pod.contents);
-                $!gutter += self!text-box($draft-footnote).lines;
+                +self!text-box($draft-footnote).lines;
             }
+            # force a page break, unless there's room for both the reference and the footnote
+            # on the current page
+            self!new-page
+                unless self!height-remaining > ($footnote-lines+1) * FooterStyle.line-height;
+            $!gutter += $footnote-lines;
+            my @contents = $ind, $pod.contents.Slip;
+            @!footnotes.push: @contents;
             self!style: :link, {  $.pod2pdf($ind); }
         }
         when 'U' {
@@ -562,11 +569,9 @@ method !pad-here {
 
 method print(Str $text, Bool :$nl, |c) {
     self!pad-here;
+    my $gfx = $.gfx;
     my PDF::Content::Text::Box $tb = self!text-box: $text, |c;
-    my $w = $tb.content-width;
-    my $h = $tb.content-height;
     my Pair $pos = self!text-position();
-    my $gfx = $!gfx // self!new-page();
     if $.link {
         use PDF::Content::Color :ColorName;
         $gfx.Save;
