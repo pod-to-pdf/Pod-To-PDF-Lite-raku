@@ -70,7 +70,7 @@ method !paginate($pdf,
     $margin-right //= $margin;
     $margin-bottom //= $margin;
     if $margin-bottom < 10 && $!page-numbers {
-        note "omitting page-numbers for margin-bottom < 10";
+        note "omitting page-numbers for margin-bottom < 10pt";
     }
     else {
         for $pdf.Pages.iterate-pages -> $page {
@@ -134,9 +134,10 @@ multi method render(
             when /^'--margin-left='(\d+)$/    { $margin-left = $0.Int }
             when /^'--margin-right='(\d+)$/   { $margin-right = $0.Int }
             when /^'--page-style='(.+)$/    {
-                apply-page-styling($0.Str,
-                            :$width, :$height,
-                            :$margin-top, :$margin-bottom, :$margin-left, :$margin-right,
+                apply-page-styling(
+                    $0.Str,
+                    :$width, :$height,
+                    :$margin-top, :$margin-bottom, :$margin-left, :$margin-right,
                            )
             }
             when /^'--save-as='(.+)$/  { $save-as = $0.Str }

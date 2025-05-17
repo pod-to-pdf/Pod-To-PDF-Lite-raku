@@ -23,7 +23,7 @@ has PDF::Content::Page $!page;
 has PDF::Content $.gfx;
 has Pod::To::PDF::Lite::Style $.style handles<font-size leading line-height bold italic mono underline lines-before link verbatim> .= new;
 has UInt:D $.level = 1;
-has $!gutter = Gutter;
+has $!gutter-lines = Gutter;
 has Numeric $!padding = 0;
 has UInt $!indent = 0;
 has Numeric $.margin-left;
@@ -62,10 +62,10 @@ method !new-page {
 method !width { $!width //= do $.gfx.canvas.width }
 
 method !add-page {
-    $!gutter = Gutter;
+    $!gutter-lines = Gutter;
     $!page = $!pages.add-page;
     $!tx = $!margin-left;
-    $!ty = $!page.height - $!margin-top - 16;
+    $!ty = $!page.height - $!margin-top - self.font-size;
     $!padding = 0;
     $!pp++;
     $!gfx = $!page.gfx;
@@ -77,14 +77,15 @@ method !finish-page {
     if @!footnotes {
         temp $.style = FooterStyle;
         temp $!indent = 0;
+        temp $!padding = 0;
         temp $!code-start-y = Nil;
         $!tx = $!margin-left;
-        $!ty = min $!ty - $.line-height / 2, self!bottom;
-        $!gutter = 0;
+        $!ty = self!bottom;
+        $!gutter-lines = 0;
         my $start-page = $!pp;
         self!draw-line($!margin-left, $!ty, self!width - $!margin-right, $!ty);
         while @!footnotes {
-            $!padding = $.line-height;
+            $!padding = FooterStyle.line-height;
             my $footnote = @!footnotes.shift;
             my $ind = $footnote.shift;
             self!style: :link, { self.print($ind) }; # [n]
@@ -350,12 +351,14 @@ multi method pod2pdf(Pod::FormattingCode $pod) {
                 my $draft-footnote = $ind ~ $.pod2text-inline($pod.contents);
                 +self!text-box($draft-footnote).lines;
             }
-            # force a page break, unless there's room for both the reference and the footnote
-            # on the current page
-            self!new-page
-                unless self!height-remaining > ($footnote-lines+1) * FooterStyle.line-height;
-            $!gutter += $footnote-lines;
+            unless self!height-remaining > ($footnote-lines+1) * FooterStyle.line-height {
+                # force a page break, unless there's room for both the reference and
+                # the footnote on the current page
+                self!new-page;
+                $ind = '[1]'; # first footnote on the new page
+            }
             my @contents = $ind, $pod.contents.Slip;
+            $!gutter-lines += $footnote-lines;
             @!footnotes.push: @contents;
             self!style: :link, {  $.pod2pdf($ind); }
         }
@@ -711,16 +714,16 @@ method gfx {
     if !$!gfx.defined || self!height-remaining < $.lines-before * $.line-height {
         self!new-page;
     }
-    elsif $!tx > $!margin-right && $!tx > self!width - self!indent {
+    elsif $!width && $!tx > $!width - $!margin-right {
         self.say;
     }
     $!gfx;
 }
 method !height-remaining {
-    $!ty - $!margin-bottom - $!gutter * FooterStyle.line-height;
+    $!ty - $!margin-bottom - $!padding - $!gutter-lines * FooterStyle.line-height;
 }
 method !top { $!page.height - $!margin-top - $!margin-bottom }
-method !bottom { $!margin-bottom + ($!gutter-2) * FooterStyle.line-height; }
+method !bottom { $!margin-bottom + ($!gutter-lines-2) * FooterStyle.line-height; }
 
 method !indent { $!margin-left  +  10 * $!indent; }
 
