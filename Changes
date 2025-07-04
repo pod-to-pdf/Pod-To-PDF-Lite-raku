@@ -1,6 +1,9 @@
 Revision history for Pod-To-PDF-Lite
 
 {{$NEXT}}
+    - Deprecate separate Pod::To::PDF::Lite::Async class in favour of
+      an `async` option in Pod::To::PDF::Lite
+    - Rework command line options processing
 
 0.1.13  2025-05-18T08:14:59+12:00
     - Fix footnote numbering, following forced page-break

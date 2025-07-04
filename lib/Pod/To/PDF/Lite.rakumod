@@ -2,11 +2,14 @@ unit class Pod::To::PDF::Lite:ver<0.1.13>;
 use PDF::Lite;
 use PDF::Content;
 use PDF::Content::FontObj;
+use PDF::Content::PageTree;
 use File::Temp;
+
 
 use PDF;
 use Pod::To::PDF::Lite::Style;
 use Pod::To::PDF::Lite::Writer;
+use Pod::To::PDF::Lite::Async::Scheduler;
 
 subset PodMetaType of Str where 'title'|'subtitle'|'author'|'name'|'version';
 
@@ -57,11 +60,12 @@ method merge-batch(%metadata) {
     self.metadata(.key) = .value for %metadata;
 }
 
-method !paginate($pdf,
-                 Numeric:D :$margin = 20,
-                 Numeric :$margin-right is copy,
-                 Numeric :$margin-bottom is copy,
-                ) {
+method !paginate(
+    $pdf,
+    Numeric:D :$margin = 20,
+    Numeric :$margin-right is copy,
+    Numeric :$margin-bottom is copy,
+) {
     my $page-count = $pdf.Pages.page-count;
     my $font = $pdf.core-font: "Helvetica";
     my $font-size := 9;
@@ -83,19 +87,38 @@ method !paginate($pdf,
     }
 }
 
-# 'sequential' single-threaded processing mode
-method read($pod, |c) {
-    self.read-batch: $pod, $!pdf.Pages, |c;
+# asynchronous pod processing
+multi method read(@pod, Bool :$async! where .so, |c) {
+    my List @batches = Pod::To::PDF::Lite::Async::Scheduler.divvy(@pod).map: -> $pod {
+        ($pod, PDF::Content::PageTree.pages-fragment);
+    }
+
+    nextsame if @batches == 1;
+
+    {
+        my @results = @batches.hyper(:batch(1)).map: {
+            self.read-batch: |$_, |c;
+        }
+
+        $.pdf.add-pages(.[1]) for @batches;
+        $.merge-batch($_) for @results;
+    }
     self!paginate($!pdf, |c)
         if $!page-numbers;
 }
 
-submethod TWEAK(Str :$lang = 'en', :$pod, :%metadata, :@fonts, |c) {
+# 'sequential' single-threaded processing mode
+multi method read(@pod, |c) {
+    self.read-batch: @pod, $!pdf.Pages, |c;
+    self!paginate($!pdf, |c)
+        if $!page-numbers;
+}
+
+submethod TWEAK(Str :$lang = 'en', :%metadata, :@fonts, |c) {
     self!init-pdf(:$lang);
     self!preload-fonts(@fonts)
         if @fonts;
     self.metadata(.key.lc) = .value for %metadata.pairs;
-    self.read($_, |c) with $pod;
 }
 
 sub apply-page-styling($style, *%props) {
@@ -108,55 +131,63 @@ sub apply-page-styling($style, *%props) {
     %props{.key} = .value for $css.Hash;
 }
 
-multi method render(
-    $class: $pod,
-    IO()   :$save-as is copy = tempfile("pod2pdf-lite-****.pdf", :!unlink)[1],
-    Numeric:D :$width  is copy = 612,
-    Numeric:D :$height is copy = 792,
-    Numeric:D :$margin is copy = 20,
-    Numeric   :$margin-left   is copy,
-    Numeric   :$margin-right  is copy,
-    Numeric   :$margin-top    is copy,
-    Numeric   :$margin-bottom is copy,
-    Bool      :$page-numbers is copy,
+sub get-opts(%opts) {
+    my Bool $show-usage;
+    for @*ARGS {
+        when /^'--'('/')?(page\-numbers|async)$/         { %opts{$1} = ! $0.so }
+        when /^'--'('/')?[toc|['table-of-']?contents]$/  { %opts<contents>  = ! $0.so }
+        when /^'--'(page\-style|save\-as)'='(.+)$/       { %opts{$0} = $1.Str }
+        when /^'--'(width|height|margin[\-[top|bottom|left|right]]?)'='(\d+)$/
+                                                         { %opts{$0}  = $1.Int }
+        default {  $show-usage = True; note "ignoring $_ argument" }
+    }
+    note '(valid options are: --save-as= --page-numbers --width= --height= --margin[-left|-right|-top|-bottom]?= --page-style --async=)'
+        if $show-usage;
+    %opts;
+}
+
+sub pod-render(
+    $pod,
+    :$class!,
+    IO()   :$save-as,
+    Numeric:D :$width  = 612,
+    Numeric:D :$height = 792,
+    Numeric:D :$margin = 20,
+    Numeric   :$margin-left   = $margin,
+    Numeric   :$margin-top    = $margin ,
+    Numeric   :$margin-right  = $margin-left,
+    Numeric   :$margin-bottom = $margin-top,
+    Bool      :$page-numbers,
+    Bool      :$async,
+    Str       :$page-style,
     |c,
 ) {
-    state %cache{Any};
-    %cache{$pod} //= do {
-        my Bool $show-usage;
-        for @*ARGS {
-            when /^'--page-numbers'$/  { $page-numbers = True }
-            when /^'--width='(\d+)$/   { $width  = $0.Int }
-            when /^'--height='(\d+)$/  { $height = $0.Int }
-            when /^'--margin='(\d+)$/  { $margin = $0.Int }
-            when /^'--margin-top='(\d+)$/     { $margin-top = $0.Int }
-            when /^'--margin-bottom='(\d+)$/  { $margin-bottom = $0.Int }
-            when /^'--margin-left='(\d+)$/    { $margin-left = $0.Int }
-            when /^'--margin-right='(\d+)$/   { $margin-right = $0.Int }
-            when /^'--page-style='(.+)$/    {
-                apply-page-styling(
-                    $0.Str,
-                    :$width, :$height,
-                    :$margin-top, :$margin-bottom, :$margin-left, :$margin-right,
-                           )
-            }
-            when /^'--save-as='(.+)$/  { $save-as = $0.Str }
-            default { $show-usage = True; note "ignoring $_ argument" }
-        }
-        note '(valid options are: --save-as= --page-numbers --width= --height= --margin[-left|-right|-top|-bottom]= --page-style=)'
-            if $show-usage;
-        # render method may be called more than once: Rakudo #2588
-        my $renderer = $class.new: |c, :$width, :$height, :$pod, :$margin, :$page-numbers,
-                       :$margin-left, :$margin-right, :$margin-top, :$margin-bottom;
-        my PDF::Lite $pdf = $renderer.pdf;
-        # save to a file, since PDF is a binary format
-        $pdf.save-as: $save-as;
-        $save-as.path;
-    }
+    apply-page-styling(
+        $_,
+        :$width, :$height,
+        :$margin-top, :$margin-bottom, :$margin-left, :$margin-right,
+    ) with $page-style;
+
+    # render method may be called more than once: Rakudo #2588
+    my $renderer = $class.new: |c, :$pod, :$width, :$height, :$margin, :$page-numbers,
+                   :$margin-left, :$margin-right, :$margin-top, :$margin-bottom;
+    my PDF::Lite $pdf = $renderer.pdf;
+    $renderer.read($pod, :$async);
+    # save to a file, since PDF is a binary format
+    $pdf.save-as: $_ with $save-as;
+    $renderer;
+}
+
+method render(::?CLASS $class: $pod, |c) {
+    my %opts .= &get-opts;
+    %opts<save-as> //= tempfile("pod2pdf-lite-****.pdf", :!unlink)[1];
+    state $rendered //= pod-render($pod, :$class, |%opts, |c);
+    %opts<save-as>;
 }
 
 our sub pod2pdf($pod, :$class = $?CLASS, |c) is export {
-    $class.new(|c, :$pod).pdf;
+    my $renderer = pod-render($pod, :$class, |c);
+    $renderer.pdf;
 }
 
 method !build-metadata-title {
@@ -280,6 +311,10 @@ Output page numbers (format C<Page n of m>, bottom right)
 
 Perform CSS C<@page> like styling of pages. At the moment, only margins (C<margin>, C<margin-left>, C<margin-top>, C<margin-bottom>, C<margin-right>) and the page C<width> and C<height> can be set. The optional [CSS::Properties](https://css-raku.github.io/CSS-Properties-raku/) module needs to be installed to use this option.
 
+=defn --async
+
+Perform asynchronous processing. This may be useful for larger PoD documents,
+that have multiple sections, seperated by level-1 headers, or titles.
 
 =head2 Subroutines
 
@@ -325,15 +360,11 @@ PDF::Lite $pdf = pod2pdf($=pod, :@fonts);
 $pdf.save-as: "pod.pdf";
 =end code
 
-=head2 Asynchronous Rendering (Experimental)
+=defn `Bool :$async`
 
-    $ raku --doc=PDF::Lite::Async lib/to/class.rakumod | xargs evince
+Process a document in asynchronous batches.
 
-Also included in this module is class `Pod::To::PDF::Lite::Async`. This extends the `Pod::To::PDF::Lite` Pod renderer, adding the
-ability to render larger documents concurrently.
-
-For this mode to be useful, the document is likely to be of the order of dozens of pages
-and include multiple level-1 headers (for batching purposes).
+This is only useful for a large Pod document that has multiple sections, each beginning with a title, or level-1 heading.
 
 =head2 Restrictions
 

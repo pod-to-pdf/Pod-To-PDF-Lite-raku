@@ -104,6 +104,12 @@ Output page numbers (format `Page n of m`, bottom right)
 
 Perform CSS `@page` like styling of pages. At the moment, only margins (`margin`, `margin-left`, `margin-top`, `margin-bottom`, `margin-right`) and the page `width` and `height` can be set. The optional [CSS::Properties](https://css-raku.github.io/CSS-Properties-raku/) module needs to be installed to use this option.
 
+**--async**
+
+
+
+Perform asynchronous processing. This may be useful for larger PoD documents, that have multiple sections, seperated by level-1 headers, or titles.
+
 Subroutines
 -----------
 
@@ -148,14 +154,13 @@ PDF::Lite $pdf = pod2pdf($=pod, :@fonts);
 $pdf.save-as: "pod.pdf";
 ```
 
-Asynchronous Rendering (Experimental)
--------------------------------------
+**`Bool :$async`**
 
-    $ raku --doc=PDF::Lite::Async lib/to/class.rakumod | xargs evince
 
-Also included in this module is class `Pod::To::PDF::Lite::Async`. This extends the `Pod::To::PDF::Lite` Pod renderer, adding the ability to render larger documents concurrently.
 
-For this mode to be useful, the document is likely to be of the order of dozens of pages and include multiple level-1 headers (for batching purposes).
+Process a document in asynchronous batches.
+
+This is only useful for a large Pod document that has multiple sections, each beginning with a title, or level-1 heading.
 
 Restrictions
 ------------

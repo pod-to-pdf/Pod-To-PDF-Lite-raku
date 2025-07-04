@@ -80,7 +80,6 @@ method !finish-page {
     self!finish-code
         if $!code-start-y;
     if @!footnotes {
-        temp $.style = FooterStyle;
         temp $!indent = 0;
         temp $!padding = 0;
         temp $!code-start-y = Nil;
@@ -92,7 +91,7 @@ method !finish-page {
         while @!footnotes {
             $!padding = FooterStyle.line-height;
             my PageFootNote $footnote = @!footnotes.shift;
-            self!style: :link, { self.print($footnote.ind) }; # [n]
+            self!style: :link, :style(FooterStyle), { self.print($footnote.ind) }; # [n]
             $!tx += 2;
             $.pod2pdf($footnote.contents);
         }
