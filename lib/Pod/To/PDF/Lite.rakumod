@@ -102,14 +102,15 @@ multi method read(@pod, Bool :$async! where .so, |c) {
 
         $.pdf.add-pages(.[1]) for @batches;
         $.merge-batch($_) for @results;
+
+        self!paginate($!pdf, |c)
+            if $!page-numbers;
     }
-    self!paginate($!pdf, |c)
-        if $!page-numbers;
 }
 
 # 'sequential' single-threaded processing mode
 multi method read(@pod, |c) {
-    self.read-batch: @pod, $!pdf.Pages, |c;
+    self.merge-batch: self.read-batch(@pod, $!pdf.Pages, |c);
     self!paginate($!pdf, |c)
         if $!page-numbers;
 }
