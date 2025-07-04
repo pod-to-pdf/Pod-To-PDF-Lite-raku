@@ -1,6 +1,8 @@
 Revision history for Pod-To-PDF-Lite
 
 {{$NEXT}}
+
+0.1.14  2025-07-05T09:13:56+12:00
     - Deprecate separate Pod::To::PDF::Lite::Async class in favour of
       an `async` option in Pod::To::PDF::Lite
     - Rework command line options processing
