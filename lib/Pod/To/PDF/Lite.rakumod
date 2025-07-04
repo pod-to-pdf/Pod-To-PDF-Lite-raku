@@ -377,7 +377,6 @@ L<PDF::Lite> minimalism, including:
 
 =head2 See Also
 
-=item L<Pod::To::PDF::Lite::Async> - Multi-threaded rendering mode (experimental)
 =item L<Pod::To::PDF> - PDF rendering via L<Cairo>
 
 =end pod

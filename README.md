@@ -176,7 +176,5 @@ Restrictions
 See Also
 --------
 
-  * [Pod::To::PDF::Lite::Async](Pod::To::PDF::Lite::Async) - Multi-threaded rendering mode (experimental)
-
   * [Pod::To::PDF](Pod::To::PDF) - PDF rendering via [Cairo](Cairo)
 
