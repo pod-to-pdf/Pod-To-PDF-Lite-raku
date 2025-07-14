@@ -296,23 +296,21 @@ multi method pod2pdf(Pod::Block::Para $pod) {
     }
 }
 
-has %!replacing;
+has Bool %!replacing;
 method !replace(Pod::FormattingCode $pod where .type eq 'R', &continue) {
     my $place-holder = $.pod2text($pod.contents);
 
     die "unable to recursively replace R\<$place-holder\>"
-         if %!replacing{$place-holder}++;
+         if %!replacing{$place-holder};
+    temp  %!replacing{$place-holder} = True;
 
     my $new-pod = %!replace{$place-holder};
-    without $new-pod {
+    $new-pod //= do {
         note "replacement not specified for R\<$place-holder\>";
-        $_ = $pod.contents;
+        $pod.contents;
     }
 
-    my $rv := &continue($new-pod);
-
-    %!replacing{$place-holder}:delete;
-    $rv;
+    &continue($new-pod);
 }
 
 multi method pod2pdf(Pod::FormattingCode $pod) {

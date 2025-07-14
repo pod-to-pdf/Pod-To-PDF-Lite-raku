@@ -179,8 +179,9 @@ sub pod-render(
     $renderer;
 }
 
-method render(::?CLASS $class: $pod, |c) {
+method render(::?CLASS $class: $pod, Str :$save-as, |c) {
     my %opts .= &get-opts;
+    %opts<save-as> = $_ with $save-as;
     %opts<save-as> //= tempfile("pod2pdf-lite-****.pdf", :!unlink)[1];
     state $rendered //= pod-render($pod, :$class, |%opts, |c);
     %opts<save-as>;
