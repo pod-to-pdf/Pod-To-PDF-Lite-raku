@@ -56,8 +56,8 @@ method write($pod) {
     self!finish-page;
 }
 
-multi method pad { $!padding=2*$.line-height }
-multi method pad(&codez) { $.pad; &codez(); $.pad; }
+method pad { $!padding=2*$.line-height }
+method block(&codez) { $.pad; &codez(); $.pad; }
 
 method !new-page {
     self!finish-page();
@@ -83,15 +83,16 @@ method !finish-page {
         temp $!indent = 0;
         temp $!padding = 0;
         temp $!code-start-y = Nil;
+        temp $!style = FooterStyle;
         $!tx = $!margin-left;
         $!ty = self!bottom;
         $!gutter-lines = 0;
         my $start-page = $!pp;
         self!draw-line($!margin-left, $!ty, self!width - $!margin-right, $!ty);
         while @!footnotes {
-            $!padding = FooterStyle.line-height;
+            $.say;
             my PageFootNote $footnote = @!footnotes.shift;
-            self!style: :link, :style(FooterStyle), { self.print($footnote.ind) }; # [n]
+            self!style: :link, { self.print($footnote.ind), }; # [n]
             $!tx += 2;
             $.pod2pdf($footnote.contents);
         }
@@ -219,7 +220,7 @@ method !build-table($pod, @table) {
 multi method pod2pdf(Pod::Block::Table $pod) {
     my @widths = self!build-table: $pod, my @table;
 
-    self!style: :lines-before(3), :pad, {
+    self!style: :lines-before(3), :block, {
         if $pod.caption -> $caption {
             self!style: :italic, {
                 $.say: $caption;
@@ -243,7 +244,7 @@ multi method pod2pdf(Pod::Block::Table $pod) {
 }
 
 multi method pod2pdf(Pod::Block::Named $pod) {
-    $.pad: {
+    $.block: {
         given $pod.name {
             when 'pod'  { $.pod2pdf($pod.contents)     }
             when 'para' {
@@ -278,20 +279,20 @@ multi method pod2pdf(Pod::Block::Named $pod) {
 }
 
 multi method pod2pdf(Pod::Block::Code $pod) {
-    self!style: :pad, :lines-before(3), {
+    self!style: :block, :lines-before(3), {
         self!code: $pod.contents;
     }
 }
 
 multi method pod2pdf(Pod::Heading $pod) {
-    $.pad: {
+    $.block: {
         $.level = min($pod.level, 6);
         self!heading: $pod.contents;
     }
 }
 
 multi method pod2pdf(Pod::Block::Para $pod) {
-    $.pad: {
+    $.block: {
         $.pod2pdf($pod.contents);
     }
 }
@@ -416,7 +417,7 @@ multi method pod2pdf(Pod::Defn $pod) {
 }
 
 multi method pod2pdf(Pod::Item $pod) {
-    $.pad: {
+    $.block: {
         my Level $list-level = min($pod.level // 1, 3);
         self!style: :indent($list-level), {
             my constant BulletPoints = ("\c[BULLET]",
@@ -485,26 +486,26 @@ multi method pod2pdf(Pod::Block::Declarator $pod) {
     $name //= $w.?name // '';
     $decl //= $type;
 
-    self!style: :lines-before(3), :pad, {
+    self!style: :lines-before(3), :block, {
         self!heading($type.tclc ~ ' ' ~ $name, :$level)
             if $type || $name;
 
        if $pod.leading -> $pre-pod {
-            self!style: :pad, {
+            self!style: :block, {
                 $.pad;
                 $.pod2pdf($pre-pod);
             }
         }
 
         if $code {
-            self!style: :pad, {
+            self!style: :block, {
                 self!code([$decl ~ ' ' ~ $code]);
             }
         }
 
         if $pod.trailing -> $post-pod {
             $.pad;
-            self!style: :pad, {
+            self!style: :block, {
                 $.pod2pdf($post-pod);
             }
         }
@@ -615,11 +616,11 @@ method !text-position {
     :position[self!indent, $!ty]
 }
 
-method !style(&codez, Int :$indent, Bool :$pad, |c) {
+method !style(&codez, Int :$indent, Bool :$block, |c) {
     temp $!style .= clone: |c;
     temp $!indent;
     $!indent += $indent if $indent;
-    $pad ?? $.pad(&codez) !! &codez();
+    $block ?? $.block(&codez) !! &codez();
 }
 
 method !heading($pod is copy, Level :$level = $.level, :$underline = $level <= 1, :$!padding = 2 * $.line-height) {
@@ -636,7 +637,7 @@ method !heading($pod is copy, Level :$level = $.level, :$underline = $level <= 1
         when 5   { $italic = True; }
     }
 
-    self!style: :$font-size, :$bold, :$italic, :$underline, :$lines-before, :pad, {
+    self!style: :$font-size, :$bold, :$italic, :$underline, :$lines-before, :block, {
         $.pod2pdf: strip-para($pod);
    }
 }
@@ -665,7 +666,7 @@ method !code(@contents is copy) {
 
     $.gfx; # vivify
 
-    self!style: :mono, :indent, :$font-size, :lines-before(0), :pad, :verbatim, {
+    self!style: :mono, :indent, :$font-size, :lines-before(0), :block, :verbatim, {
         self!pad-here;
         my @plain-text;
 

@@ -1,6 +1,7 @@
 Revision history for Pod-To-PDF-Lite
 
 {{$NEXT}}
+    - Fix foot-style application.
 
 0.1.14  2025-07-05T09:13:56+12:00
     - Deprecate separate Pod::To::PDF::Lite::Async class in favour of
