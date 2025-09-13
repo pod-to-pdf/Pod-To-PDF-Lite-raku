@@ -36,6 +36,7 @@ has Numeric $!code-start-y;
 my class PageFootNote {
     has @.contents is required;
     has Int:D $.num is rw is required;
+    method pad { 2 }
     method ind { '[' ~ $!num ~ ']' }
 }
 has PageFootNote @!footnotes;
@@ -93,7 +94,7 @@ method !finish-page {
             $.say;
             my PageFootNote $footnote = @!footnotes.shift;
             self!style: :link, { self.print($footnote.ind), }; # [n]
-            $!tx += 2;
+            $!tx += $footnote.pad;
             $.pod2pdf($footnote.contents);
         }
         unless $!pp == $start-page {
@@ -220,60 +221,56 @@ method !build-table($pod, @table) {
 multi method pod2pdf(Pod::Block::Table $pod) {
     my @widths = self!build-table: $pod, my @table;
 
-    self!style: :lines-before(3), :block, {
-        if $pod.caption -> $caption {
-            self!style: :italic, {
-                $.say: $caption;
-            }
+    if $pod.caption -> $caption {
+        self!style: :italic, {
+            $.say: $caption;
         }
-        self!pad-here;
-        my PDF::Content::Text::Box @headers = @table.shift.List;
-        if @headers {
-            self!table-row: @headers, @widths, :header;
-        }
+    }
+    self!pad-here;
+    my PDF::Content::Text::Box @headers = @table.shift.List;
+    if @headers {
+        self!table-row: @headers, @widths, :header;
+    }
 
-        if @table {
-            for @table {
-                my @row = .List;
-                if @row {
-                    self!table-row: @row, @widths;
-                }
+    if @table {
+        for @table {
+            my @row = .List;
+            if @row {
+                self!table-row: @row, @widths;
             }
         }
     }
 }
 
 multi method pod2pdf(Pod::Block::Named $pod) {
-    $.block: {
-        given $pod.name {
-            when 'pod'  { $.pod2pdf($pod.contents)     }
-            when 'para' {
+    given $pod.name {
+        when 'pod'  { $.pod2pdf($pod.contents)     }
+        when 'para' {
+            $.pod2pdf: $pod.contents;
+        }
+        when 'config' { }
+        when 'nested' {
+            self!style: :indent, {
                 $.pod2pdf: $pod.contents;
             }
-            when 'config' { }
-            when 'nested' {
-                self!style: :indent, {
-                    $.pod2pdf: $pod.contents;
-                }
-            }
-            when  'TITLE'|'SUBTITLE' {
-                temp $!level = $_ eq 'TITLE' ?? 0 !! 2;
-                %!metadata{.lc} ||= $.pod2text-inline($pod.contents);
-                self!heading($pod.contents, :padding($.line-height));
-            }
+        }
+        when  'TITLE'|'SUBTITLE' {
+            temp $!level = $_ eq 'TITLE' ?? 0 !! 2;
+            %!metadata{.lc} ||= $.pod2text-inline($pod.contents);
+            self!heading($pod.contents, :padding($.line-height));
+        }
 
-            default {
-                my $name = $_;
-                temp $!level += 1;
-                if $name eq $name.uc {
-                    if $name ~~ 'VERSION'|'NAME'|'AUTHOR' {
-                        %!metadata{.lc} ||= $.pod2text-inline($pod.contents);
-                    }
-                    $.level = 2;
-                    $name = .tclc;
+        default {
+            my $name = $_;
+            temp $!level += 1;
+            if $name eq $name.uc {
+                if $name ~~ 'VERSION'|'NAME'|'AUTHOR' {
+                    %!metadata{.lc} ||= $.pod2text-inline($pod.contents);
                 }
-                $.pod2pdf($pod.contents);
+                $.level = 2;
+                $name = .tclc;
             }
+            $.pod2pdf($pod.contents);
         }
     }
 }
@@ -285,16 +282,12 @@ multi method pod2pdf(Pod::Block::Code $pod) {
 }
 
 multi method pod2pdf(Pod::Heading $pod) {
-    $.block: {
-        $.level = min($pod.level, 6);
-        self!heading: $pod.contents;
-    }
+    $.level = min($pod.level, 6);
+    self!heading: $pod.contents;
 }
 
 multi method pod2pdf(Pod::Block::Para $pod) {
-    $.block: {
-        $.pod2pdf($pod.contents);
-    }
+    $.pod2pdf($pod.contents);
 }
 
 has Bool %!replacing;
@@ -350,10 +343,11 @@ multi method pod2pdf(Pod::FormattingCode $pod) {
             my UInt:D $footnote-lines = do {
                 # pre-compute footnote size
                 temp $!style = FooterStyle;
-                temp $!tx = $!margin-left;
+                temp $!tx = $!margin-left + $footnote.pad;
                 temp $!ty = $!page.height;
                 temp $!indent = 0;
                 given $footnote {
+                    temp $!width *= .9 unless .contents.are ~~ Str;
                     my $draft-text = .ind ~ $.pod2text-inline(.contents);
                     +self!text-box($draft-text).lines;
                 }
@@ -409,28 +403,31 @@ multi method pod2pdf(Pod::FormattingCode $pod) {
 }
 
 multi method pod2pdf(Pod::Defn $pod) {
-    $.pad;
     self!style: :bold, {
         $.pod2pdf($pod.term);
     }
     $.pod2pdf($pod.contents.&strip-para);
 }
 
-multi method pod2pdf(Pod::Item $pod) {
-    $.block: {
-        my Level $list-level = min($pod.level // 1, 3);
-        self!style: :indent($list-level), {
-            my constant BulletPoints = ("\c[BULLET]",
-                                        "\c[MIDDLE DOT]",
-                                        '-');
-            my $bp = BulletPoints[$list-level - 1];
-            $.print: $bp;
+sub bullet-point(Level $level) {
+    my constant BulletPoints = ("\c[BULLET]",
+                                "\c[MIDDLE DOT]",
+                                '-');
+    BulletPoints[$level - 1];
+}
 
-            $!float = True;
+multi method pod2pdf(Pod::Item $pod, :@seq) {
+    my Level $list-level = min($pod.level // 1, 4);
+    self!style: :indent($list-level), {
+        my $label = @seq.tail
+                      ?? @seq.tail.Str
+                      !! $list-level.&bullet-point;
+        $.print: $label;
 
-            self!style: :indent, {
-                $.pod2pdf($pod.contents.&strip-para);
-            }
+        $!float = True;
+
+        self!style: :indent, {
+            $.pod2pdf($pod.contents.&strip-para);
         }
     }
 }
@@ -486,28 +483,26 @@ multi method pod2pdf(Pod::Block::Declarator $pod) {
     $name //= $w.?name // '';
     $decl //= $type;
 
-    self!style: :lines-before(3), :block, {
-        self!heading($type.tclc ~ ' ' ~ $name, :$level)
-            if $type || $name;
+    self!heading($type.tclc ~ ' ' ~ $name, :$level)
+        if $type || $name;
 
-       if $pod.leading -> $pre-pod {
-            self!style: :block, {
-                $.pad;
-                $.pod2pdf($pre-pod);
-            }
-        }
-
-        if $code {
-            self!style: :block, {
-                self!code([$decl ~ ' ' ~ $code]);
-            }
-        }
-
-        if $pod.trailing -> $post-pod {
+    if $pod.leading -> $pre-pod {
+        self!style: :block, {
             $.pad;
-            self!style: :block, {
-                $.pod2pdf($post-pod);
-            }
+            $.pod2pdf($pre-pod);
+        }
+    }
+
+    if $code {
+        self!style: :block, {
+            self!code([$decl ~ ' ' ~ $code]);
+        }
+    }
+
+    if $pod.trailing -> $post-pod {
+        $.pad;
+        self!style: :block, {
+            $.pod2pdf($post-pod);
         }
     }
 }
@@ -537,8 +532,44 @@ multi method pod2pdf(Str $pod) {
     $.print($pod);
 }
 
+sub nest(@levels, $level) {
+    while @levels && @levels.tail > $level {
+        @levels.pop;
+    }
+    if $level && (!@levels || @levels.tail < $level) {
+        @levels.push: $level;
+    }
+}
+
+method !pod2pdf-block($_, :@levels!, :@seq!) {
+    do {
+        when Pod::Item { @levels.&nest(.level) }
+        when Pod::Defn { @levels.&nest(1) }
+    }
+
+    if .config<numbered> {
+        @seq.tail++;
+    }
+    else {
+        @seq.tail = 0;
+    }
+
+    self!style: :lines-before(3), :block, {
+        $.pod2pdf($_, :@seq);
+    }
+}
+
 multi method pod2pdf(List:D $pod) {
-    $.pod2pdf($_) for $pod.list;
+    my @levels;
+    my @seq = 0;
+    for $pod.list {
+        if .isa(Pod::Block) && !.isa(Pod::FormattingCode) {
+            self!pod2pdf-block($_, :@levels, :@seq);
+        }
+        else {
+            $.pod2pdf($_);
+        }
+    }
 }
 
 multi method pod2pdf($pod) {
