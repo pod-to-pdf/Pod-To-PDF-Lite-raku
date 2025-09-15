@@ -276,9 +276,7 @@ multi method pod2pdf(Pod::Block::Named $pod) {
 }
 
 multi method pod2pdf(Pod::Block::Code $pod) {
-    self!style: :block, :lines-before(3), {
-        self!code: $pod.contents;
-    }
+    self!code: $pod.contents;
 }
 
 multi method pod2pdf(Pod::Heading $pod) {
@@ -416,11 +414,11 @@ sub bullet-point(Level $level) {
     BulletPoints[$level - 1];
 }
 
-multi method pod2pdf(Pod::Item $pod, :@seq) {
-    my Level $list-level = min($pod.level // 1, 4);
+multi method pod2pdf(Pod::Item $pod, :$num) {
+    my Level $list-level = min($pod.level // 1, 3);
     self!style: :indent($list-level), {
-        my $label = @seq.tail
-                      ?? @seq.tail.Str
+        my $label = $num.tail
+                      ?? $num.Str
                       !! $list-level.&bullet-point;
         $.print: $label;
 
@@ -541,21 +539,22 @@ sub nest(@levels, $level) {
     }
 }
 
-method !pod2pdf-block($_, :@levels!, :@seq!) {
-    do {
-        when Pod::Item { @levels.&nest(.level) }
-        when Pod::Defn { @levels.&nest(1) }
-    }
+method !pod2pdf-block($pod, :@levels!, :@seq!) {
+    my $list-level = $pod.isa(Pod::Item)
+        ?? $pod.level
+        !! 0;
+    @levels.&nest($list-level);
 
-    if .config<numbered> {
-        @seq.tail++;
+    my $num := @seq.tail;
+    if $pod.config<numbered> {
+        $num++;
     }
     else {
-        @seq.tail = 0;
+        $num = 0;
     }
 
     self!style: :lines-before(3), :block, {
-        $.pod2pdf($_, :@seq);
+        $.pod2pdf($pod, :$num);
     }
 }
 
