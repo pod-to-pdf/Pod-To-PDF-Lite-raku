@@ -117,7 +117,7 @@ my constant vpad = 2;
 my constant hpad = 10;
 
 # a simple algorithm for sizing table column widths
-sub fit-widths($width is copy, @widths) {
+sub fit-width(@widths, $width is copy) {
     my $cell-width = $width / +@widths;
     my @idx;
 
@@ -136,7 +136,7 @@ sub fit-widths($width is copy, @widths) {
             my $i = 0;
             @over[$_] := @widths[ @idx[$_] ]
                 for  ^+@idx;
-            fit-widths($width, @over);
+            @over.&fit-width($width);
         }
         else {
             $_ = $cell-width
@@ -199,10 +199,10 @@ method !table-cell($pod) {
 }
 
 # prepare a table as a grid of text boxes. compute column widths
-method !build-table($pod, @table) {
+method !build-table($pod) {
     my $x0 = self!indent;
     my \total-width = self!width - $x0 - $!margin-right;
-    @table = ();
+    my @table = ();
 
     self!style: :bold, :lines-before(3), {
         my @row = $pod.headers.map: { self!table-cell($_) }
@@ -216,11 +216,11 @@ method !build-table($pod, @table) {
 
     my $cols = @table.max: *.Int;
     my @widths = (^$cols).map: -> $col { @table.map({.[$col].?width // 0}).max };
-    fit-widths(total-width - hpad * (@widths-1), @widths);
+    @table, @widths.&fit-width(total-width - hpad * (@widths-1));
 }
 
 multi method pod2pdf(Pod::Block::Table $pod) {
-    my @widths = self!build-table: $pod, my @table;
+    my :(@table, @widths) := self!build-table: $pod;
 
     if $pod.caption -> $caption {
         self!style: :italic, {
@@ -417,7 +417,7 @@ multi method pod2pdf(Pod::Item $pod) {
     my Level $list-level = min($pod.level // 1, 3);
     self!style: :indent($list-level), {
         my $label = @!item-nums.tail
-            ?? @!item-nums.grep({$_}).join('.')
+            ?? @!item-nums.grep({$_}).join('.') ~ '.'
             !! $list-level.&bullet-point;
 
         $.print: $label;
