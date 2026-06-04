@@ -305,9 +305,10 @@ method !replace(Pod::FormattingCode $pod where .type eq 'R', &continue) {
 }
 
 multi method pod2pdf(Pod::FormattingCode $pod) {
+    my constant %Style = %{ :B{:bold}, :C{:mono}, :T{:mono}, :K{:mono, :italic}, :I{:italic}, :U{:underline} };
     given $pod.type {
-         when 'B' {
-            self!style: :bold, {
+         when %Style{$_}:exists {
+            self!style: |%Style{$_}, {
                 $.pod2pdf($pod.contents);
             }
          }
@@ -316,21 +317,6 @@ multi method pod2pdf(Pod::FormattingCode $pod) {
              self!style: :mono, :$font-size, {
                  $.print: $.pod2text($pod);
              }
-        }
-        when 'T' {
-            self!style: :mono, {
-                $.pod2pdf($pod.contents);
-            }
-        }
-        when 'K' {
-            self!style: :italic, :mono, {
-                $.pod2pdf($pod.contents);
-            }
-        }
-        when 'I' {
-            self!style: :italic, {
-                $.pod2pdf($pod.contents);
-            }
         }
         when 'N' {
             my PageFootNote:D $footnote .= new(
@@ -358,11 +344,6 @@ multi method pod2pdf(Pod::FormattingCode $pod) {
             $!gutter-lines += $footnote-lines;
             @!footnotes.push: $footnote;
             self!style: :link, {  $.pod2pdf($footnote.ind); }
-        }
-        when 'U' {
-            self!style: :underline, {
-                $.pod2pdf($pod.contents);
-            }
         }
         when 'E' {
             $.pod2pdf($pod.contents);
